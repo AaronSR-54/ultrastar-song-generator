@@ -118,7 +118,7 @@ impl WhisperEngine {
 /// machine and succeeds when the same audio is encoded again with a fresh
 /// state. Treating it as fatal would fail whole songs at random, so the engine
 /// retries it once.
-pub const MAX_ENCODE_ATTEMPTS: usize = 2;
+pub const MAX_ENCODE_ATTEMPTS: usize = 5;
 
 /// True when a whisper error is the transient encoder failure.
 pub fn is_transient_whisper_failure(error: &TranscriptionError) -> bool {
@@ -780,6 +780,6 @@ mod tests {
         assert!(!is_transient_whisper_failure(
             &TranscriptionError::UnsupportedLanguage("xx".into())
         ));
-        assert_eq!(MAX_ENCODE_ATTEMPTS, 2);
+        assert_eq!(MAX_ENCODE_ATTEMPTS, 5);
     }
 }

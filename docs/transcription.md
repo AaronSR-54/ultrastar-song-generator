@@ -41,7 +41,7 @@ El resto de idiomas se transcriben, pero la revisión y la silabificación usan 
 
 La cancelación se propaga a `whisper.cpp` con `set_abort_callback_safe`; el resultado parcial se descarta y la etapa vuelve a `pending`.
 
-Si `whisper.cpp` devuelve el error transitorio de codificación (`-6`, «failed to encode»), el motor crea un estado nuevo y repite la inferencia una vez (`MAX_ENCODE_ATTEMPTS = 2`). Es un fallo intermitente conocido de la codificación en CPU que no depende del audio ni de la memoria disponible; tratarlo como fatal abortaría canciones enteras al azar. Cualquier otro error (o un segundo `-6`) se propaga como `TranscriptionError::Failed`.
+Si `whisper.cpp` devuelve el error transitorio de codificación (`-6`, «failed to encode»), el motor crea un estado nuevo y repite la inferencia hasta cinco veces (`MAX_ENCODE_ATTEMPTS`). Es un fallo intermitente conocido de la codificación en CPU que no depende del audio ni de la memoria disponible; tratarlo como fatal abortaría canciones enteras al azar. Cualquier otro error (o cinco `-6` seguidos) se propaga como `TranscriptionError::Failed`.
 
 ## Marcas temporales
 

@@ -13,10 +13,27 @@ fn collect_txt_files(root: &Path, files: &mut Vec<PathBuf>) {
         } else if path
             .extension()
             .is_some_and(|extension| extension.eq_ignore_ascii_case("txt"))
+            && looks_like_song(&path)
         {
             files.push(path);
         }
     }
+}
+
+/// The reference folder also contains readmes and licences; only files with a
+/// `#TITLE` header are UltraStar songs.
+fn looks_like_song(path: &Path) -> bool {
+    let Ok(bytes) = std::fs::read(path) else {
+        return false;
+    };
+    String::from_utf8_lossy(&bytes)
+        .lines()
+        .take(20)
+        .any(|line| {
+            line.trim_start_matches('\u{feff}')
+                .to_ascii_uppercase()
+                .starts_with("#TITLE")
+        })
 }
 
 #[test]

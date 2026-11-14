@@ -98,9 +98,9 @@
 
 ## 11. Integración, rendimiento y entrega
 
-- [ ] 11.1 Ejecutar la suite completa con `USDX_REFS_DIR` y verificar que los 132 archivos se parsean y los de una voz hacen round-trip sin errores.
-- [ ] 11.2 Probar el pipeline completo con una canción en español y otra en inglés; verificar la checklist de aceptación (audio, carátula, letra, notas, frases) y registrar tiempos.
-- [ ] 11.3 Medir los presupuestos de rendimiento del diseño (separación, transcripción, pitch, alineación); verificar que se cumplen o documentar la degradación aplicada.
+- [x] 11.1 Ejecutar la suite completa con `USDX_REFS_DIR` y verificar que los 132 archivos se parsean y los de una voz hacen round-trip sin errores.
+- [x] 11.2 Probar el pipeline completo con una canción en español y otra en inglés; verificar la checklist de aceptación (audio, carátula, letra, notas, frases) y registrar tiempos.
+- [x] 11.3 Medir los presupuestos de rendimiento del diseño (separación, transcripción, pitch, alineación); verificar que se cumplen o documentar la degradación aplicada.
 - [ ] 11.4 Generar builds release para Windows, macOS y Linux y ejecutar una prueba de humo en cada uno; verificar arranque, detección de herramientas y apertura de proyecto.
 - [ ] 11.5 Revisar `docs/licenses.md` contra el `Cargo.lock` final y los binarios incluidos; verificar que no se distribuye `ffmpeg` GPL ni pesos Demucs.
 - [ ] 11.6 Escribir la guía de usuario (instalación, primera canción, revisión, exportación y copia a `songs/`) en `README.md`; verificar siguiéndola de principio a fin.

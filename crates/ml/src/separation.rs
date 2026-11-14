@@ -116,6 +116,8 @@ impl StemSeparator for CharonSeparator {
         let instrumental = AudioBuffer::new(instrumental_data, vocals.sample_rate);
         let vocals = fit_length(vocals, samples, audio.sample_rate)?;
         let instrumental = fit_length(instrumental, samples, audio.sample_rate)?;
+        let vocals = match_channel_count(vocals, audio.channels())?;
+        let instrumental = match_channel_count(instrumental, audio.channels())?;
 
         if vocals.channels() != audio.channels() {
             return Err(SeparationError::ShapeMismatch(
@@ -139,6 +141,35 @@ impl StemSeparator for CharonSeparator {
             vocals: vocals_path,
             instrumental: instrumental_path,
         })
+    }
+}
+
+/// HTDemucs emits stereo stems even for a mono mix (the analysis WAV is mono),
+/// and the exported stems must keep the channel count of the project audio.
+fn match_channel_count(
+    buffer: AudioBuffer,
+    target_channels: usize,
+) -> Result<AudioBuffer, SeparationError> {
+    if buffer.channels() == target_channels || target_channels == 0 {
+        return Ok(buffer);
+    }
+    let sample_rate = buffer.sample_rate;
+    match (buffer.channels(), target_channels) {
+        (2, 1) => {
+            let mut mixed = buffer.data.row(0).to_owned();
+            mixed += &buffer.data.row(1);
+            mixed /= 2.0;
+            Ok(AudioBuffer::new(mixed.insert_axis(Axis(0)), sample_rate))
+        }
+        (1, 2) => {
+            let duplicated =
+                ndarray::concatenate(Axis(0), &[buffer.data.view(), buffer.data.view()])
+                    .map_err(|error| SeparationError::Failed(error.to_string()))?;
+            Ok(AudioBuffer::new(duplicated, sample_rate))
+        }
+        (channels, target) => Err(SeparationError::ShapeMismatch(format!(
+            "cannot convert {channels} channels to {target}"
+        ))),
     }
 }
 
@@ -183,5 +214,32 @@ mod tests {
     fn missing_model_is_reported() {
         let error = CharonSeparator::new("definitely-not-a-model.onnx").err();
         assert!(matches!(error, Some(SeparationError::Failed(_))));
+    }
+
+    #[test]
+    fn stereo_stems_are_downmixed_for_a_mono_mix() {
+        let stereo = AudioBuffer::new(
+            Array2::from_shape_vec((2, 3), vec![1.0, 0.5, -1.0, 0.0, 0.5, 1.0]).unwrap(),
+            48_000,
+        );
+        let mono = match_channel_count(stereo, 1).unwrap();
+        assert_eq!(mono.channels(), 1);
+        assert_eq!(mono.samples(), 3);
+        assert!((mono.data[[0, 0]] - 0.5).abs() < f32::EPSILON);
+        assert!((mono.data[[0, 1]] - 0.5).abs() < f32::EPSILON);
+        assert!((mono.data[[0, 2]] - 0.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn mono_stems_are_duplicated_for_a_stereo_mix() {
+        let mono = AudioBuffer::new(
+            Array2::from_shape_vec((1, 2), vec![0.25, -0.25]).unwrap(),
+            48_000,
+        );
+        let stereo = match_channel_count(mono, 2).unwrap();
+        assert_eq!(stereo.channels(), 2);
+        assert_eq!(stereo.data[[0, 0]], 0.25);
+        assert_eq!(stereo.data[[1, 0]], 0.25);
+        assert_eq!(stereo.data[[1, 1]], -0.25);
     }
 }
