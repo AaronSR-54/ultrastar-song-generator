@@ -148,6 +148,35 @@ mod tests {
         }
     }
 
+    /// A long-running child that does not depend on `PATH`.
+    ///
+    /// `cargo test --workspace` puts every build-script output directory in
+    /// `PATH`; past ~8191 characters `cmd.exe` stops resolving executables, so
+    /// `ping` with a bare name silently fails and never reaches the timeout.
+    /// Resolve it by absolute path instead.
+    fn sleeper(seconds: u32) -> Command {
+        #[cfg(windows)]
+        {
+            let system_root = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
+            let ping = std::path::Path::new(&system_root)
+                .join("System32")
+                .join("ping.exe");
+            let mut command = Command::new(ping);
+            let count = (seconds + 1).to_string();
+            command
+                .args(["-n", count.as_str(), "127.0.0.1"])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null());
+            command
+        }
+        #[cfg(not(windows))]
+        {
+            let mut command = Command::new("sleep");
+            command.arg(seconds.to_string());
+            command
+        }
+    }
+
     #[tokio::test]
     async fn successful_process_captures_stdout() {
         let output = run(shell("echo hello"), Duration::from_secs(5), None)
@@ -178,12 +207,7 @@ mod tests {
 
     #[tokio::test]
     async fn timeout_kills_the_child() {
-        let script = if cfg!(windows) {
-            "ping -n 5 127.0.0.1 > nul"
-        } else {
-            "sleep 5"
-        };
-        let error = run(shell(script), Duration::from_millis(150), None)
+        let error = run(sleeper(5), Duration::from_millis(150), None)
             .await
             .unwrap_err();
         assert!(matches!(error, ProcessError::Timeout(_)));
@@ -193,12 +217,7 @@ mod tests {
     async fn pre_cancelled_process_does_not_run() {
         let cancel = CancelFlag::default();
         cancel.cancel();
-        let script = if cfg!(windows) {
-            "ping -n 5 127.0.0.1 > nul"
-        } else {
-            "sleep 5"
-        };
-        let error = run(shell(script), Duration::from_secs(5), Some(cancel))
+        let error = run(sleeper(5), Duration::from_secs(5), Some(cancel))
             .await
             .unwrap_err();
         assert!(matches!(error, ProcessError::Cancelled));
