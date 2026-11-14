@@ -1,0 +1,15 @@
+[package]
+name = "usdx-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+usdx-application = { path = "../application" }
+usdx-domain = { path = "../domain" }
+usdx-format = { path = "../usdx" }
+usdx-ports = { path = "../ports" }
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

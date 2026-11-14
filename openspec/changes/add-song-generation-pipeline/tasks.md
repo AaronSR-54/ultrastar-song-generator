@@ -2,9 +2,9 @@
 
 ## 1. Toolchain y esqueleto del workspace
 
-- [ ] 1.1 Instalar Rust estable con toolchain MSVC, CMake y LLVM/clang; verificar con `rustc --version`, `cargo --version`, `cmake --version` y una compilación trivial de whisper-rs.
-- [ ] 1.2 Crear el workspace con `domain`, `ports`, `media`, `ml`, `usdx`, `application` y `desktop`; verificar con `cargo check --workspace`.
-- [ ] 1.3 Fijar `ort = 2.0.0-rc.13` y generar `Cargo.lock`; verificar que `cargo tree -d -i ort` muestra una sola versión.
+- [x] 1.1 Instalar Rust estable con toolchain MSVC, CMake y LLVM/clang; verificar con `rustc --version`, `cargo --version`, `cmake --version` y una compilación trivial de whisper-rs.
+- [x] 1.2 Crear el workspace con `domain`, `ports`, `media`, `ml`, `usdx`, `application` y `desktop`; verificar con `cargo check --workspace`.
+- [x] 1.3 Fijar `ort = 2.0.0-rc.13` y generar `Cargo.lock`; verificar que `cargo tree -d -i ort` muestra una sola versión.
 - [ ] 1.4 Añadir CI de `cargo fmt --check`, `cargo clippy -- -D warnings` y `cargo test --workspace`; verificar que el workflow pasa en un commit de prueba.
 - [ ] 1.5 Documentar prerrequisitos de build por sistema operativo en `docs/setup.md`; verificar siguiendo las instrucciones en una carpeta limpia.
 - [ ] 1.6 Crear `docs/licenses.md` con la matriz de licencias del diseño; verificar que incluye `yt-dlp` GPL, `ffmpeg` LGPL/GPL y pesos Demucs.

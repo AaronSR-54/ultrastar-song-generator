@@ -1,0 +1,15 @@
+[package]
+name = "usdx-media"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+usdx-domain = { path = "../domain" }
+usdx-ports = { path = "../ports" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
