@@ -3,6 +3,7 @@
 pub mod hash;
 pub mod jobs;
 pub mod models;
+pub mod pipeline;
 pub mod project;
 pub mod stages;
 
@@ -13,6 +14,10 @@ pub use jobs::{
 pub use models::{
     choose_backend, Backend, BackendChoice, BackendPreference, CatalogError, Hardware,
     ModelCatalog, ModelDownloader, ModelError, ModelPurpose, ModelSpec, ModelStore,
+};
+pub use pipeline::{
+    ExportOutcome, Pipeline, PipelineConfig, PipelineError, PitchArtifacts, StageProgress,
+    EXPORTED_AUDIO, EXPORTED_COVER, EXPORTED_VIDEO, HEADER_AUDIO,
 };
 pub use project::{
     atomic_write, now_unix_ms, slugify, Autosave, Project, ProjectError, ProjectPaths,

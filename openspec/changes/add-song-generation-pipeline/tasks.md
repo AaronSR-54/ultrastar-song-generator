@@ -86,15 +86,15 @@
 
 ## 10. Editor de revisión
 
-- [ ] 10.1 Implementar el shell de la app con vista de proyecto, estados de etapa y acciones de procesar/reintentar/cancelar; verificar con un proyecto real y uno fallido.
-- [ ] 10.2 Implementar reproducción con `rodio`: play, pausa, seek, bucle y cambio de stem; verificar sincronía tras 10 seeks seguidos.
-- [ ] 10.3 Implementar la pirámide de picos y el render de waveform con zoom; verificar que una canción de 6 minutos se dibuja sin bloquear la UI.
-- [ ] 10.4 Implementar el piano-roll con notas, continuaciones, cortes de frase, selección y resaltado de dudas; verificar con una canción generada.
-- [ ] 10.5 Implementar crear, borrar, mover, redimensionar, cambiar pitch/tipo y editar texto con las restricciones de solape; verificar cada operación con tests de UI/estado.
-- [ ] 10.6 Implementar controles de `#BPM`/`#GAP`, candidatos de tempo y rechazo de valores inválidos; verificar que la rejilla se actualiza sin mover el audio.
-- [ ] 10.7 Implementar undo/redo de 100 pasos, autoguardado y aviso al cerrar; verificar deshacer/rehacer y un cierre con cambios pendientes.
-- [ ] 10.8 Implementar exportación desde el editor y navegación al error de validación; verificar que un texto vacío selecciona la nota correcta.
-- [ ] 10.9 Documentar atajos y flujo de revisión en `docs/editor.md`; verificar el checklist manual de reproducción, edición y exportación.
+- [x] 10.1 Implementar el shell de la app con vista de proyecto, estados de etapa y acciones de procesar/reintentar/cancelar; verificar con un proyecto real y uno fallido.
+- [x] 10.2 Implementar reproducción con `rodio`: play, pausa, seek, bucle y cambio de stem; verificar sincronía tras 10 seeks seguidos.
+- [x] 10.3 Implementar la pirámide de picos y el render de waveform con zoom; verificar que una canción de 6 minutos se dibuja sin bloquear la UI.
+- [x] 10.4 Implementar el piano-roll con notas, continuaciones, cortes de frase, selección y resaltado de dudas; verificar con una canción generada.
+- [x] 10.5 Implementar crear, borrar, mover, redimensionar, cambiar pitch/tipo y editar texto con las restricciones de solape; verificar cada operación con tests de UI/estado.
+- [x] 10.6 Implementar controles de `#BPM`/`#GAP`, candidatos de tempo y rechazo de valores inválidos; verificar que la rejilla se actualiza sin mover el audio.
+- [x] 10.7 Implementar undo/redo de 100 pasos, autoguardado y aviso al cerrar; verificar deshacer/rehacer y un cierre con cambios pendientes.
+- [x] 10.8 Implementar exportación desde el editor y navegación al error de validación; verificar que un texto vacío selecciona la nota correcta.
+- [x] 10.9 Documentar atajos y flujo de revisión en `docs/editor.md`; verificar el checklist manual de reproducción, edición y exportación.
 
 ## 11. Integración, rendimiento y entrega
 

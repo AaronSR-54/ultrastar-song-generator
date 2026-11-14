@@ -9,7 +9,17 @@ rust-version.workspace = true
 usdx-application = { path = "../application" }
 usdx-domain = { path = "../domain" }
 usdx-format = { path = "../usdx" }
+usdx-media = { path = "../media" }
 usdx-ports = { path = "../ports" }
 anyhow.workspace = true
+charon-audio = "0.1.2"
+eframe.workspace = true
+egui.workspace = true
+rodio.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -242,6 +242,11 @@ impl ProjectPaths {
         self.work_dir().join("notes.json")
     }
 
+    /// Editable song document produced by the alignment stage.
+    pub fn song(&self) -> PathBuf {
+        self.work_dir().join("song.json")
+    }
+
     pub fn peaks(&self) -> PathBuf {
         self.work_dir().join("peaks.bin")
     }

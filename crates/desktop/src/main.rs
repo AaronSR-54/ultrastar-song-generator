@@ -7,5 +7,6 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     tracing::info!("ultrastar-song-generator starting");
+    usdx_desktop::run()?;
     Ok(())
 }
