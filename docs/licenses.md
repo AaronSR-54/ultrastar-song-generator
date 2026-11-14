@@ -11,29 +11,33 @@ El código de este repositorio se distribuye bajo **MIT OR Apache-2.0**, salvo q
 | Componente | Uso | Licencia | Notas |
 |---|---|---|---|
 | `eframe`, `egui` | GUI | MIT OR Apache-2.0 | — |
-| `rfd` | Diálogos nativos | MIT | — |
 | `directories` | Rutas de datos | MIT OR Apache-2.0 | — |
+| `fs4` | Bloqueo del proyecto | MIT OR Apache-2.0 | — |
 | `tokio` | I/O, procesos, jobs | MIT | — |
 | `serde`, `serde_json` | Persistencia | MIT OR Apache-2.0 | — |
 | `toml` | Configuración | MIT OR Apache-2.0 | — |
 | `thiserror`, `anyhow` | Errores | MIT OR Apache-2.0 | — |
 | `tracing`, `tracing-subscriber` | Logs | MIT | Sin telemetría |
-| `symphonia` | Decodificación de audio | MPL-2.0 | Copyleft a nivel de archivo; se puede enlazar sin relicenciar el resto |
+| `symphonia` (y sus códecs) | Decodificación de audio | MPL-2.0 | Copyleft a nivel de archivo; se puede enlazar sin relicenciar el resto |
 | `rubato` | Remuestreo | MIT | — |
-| `realfft` | FFT/onsets | MIT OR Apache-2.0 | — |
-| `hound` | WAV | Apache-2.0 OR MIT | — |
+| `realfft` | FFT/onsets | MIT | — |
+| `hound` | WAV | Apache-2.0 | — |
 | `rodio` | Reproducción | MIT OR Apache-2.0 | ALSA en Linux |
-| `whisper-rs` | ASR (bindings) | Unlicense | whisper.cpp es MIT |
+| `whisper-rs`, `whisper-rs-sys` | ASR (bindings) | Unlicense | whisper.cpp es MIT |
 | `charon-audio` | Separación de stems | MIT OR Apache-2.0 | — |
 | `ort` | Runtime ONNX | MIT OR Apache-2.0 | ONNX Runtime es MIT |
 | `pitch-core` | F0 | MIT OR Apache-2.0 | — |
 | `pyin` | pYIN | MIT | Vía `pitch-core` |
-| `hyphenation` | Silabificación | MIT OR Apache-2.0 | Los patrones `hyph-utf8` conservan sus licencias |
-| `unicode-segmentation`, `unicode-normalization` | Texto | MIT OR Apache-2.0 | — |
+| `hyphenation`, `hyphenation_commons` | Silabificación | Apache-2.0/MIT | Los patrones `hyph-utf8` conservan sus licencias |
+| `unicode-segmentation` | Texto | MIT OR Apache-2.0 | — |
 | `reqwest` | Descarga de modelos | MIT OR Apache-2.0 | Usar rustls |
 | `sha2` | Integridad | MIT OR Apache-2.0 | — |
 | `image` | Carátula | MIT OR Apache-2.0 | — |
-| `lofty` | Metadatos | MIT | — |
+| `ndarray` | Tensores | MIT OR Apache-2.0 | — |
+| `self_cell` | Utilidad de `ort` | Apache-2.0 OR GPL-2.0-only | Se usa la opción Apache-2.0 |
+| `r-efi` | Utilidad de plataforma | MIT OR Apache-2.0 OR LGPL-2.1-or-later | Se usa la opción MIT/Apache-2.0 |
+
+Crates que aparecen en la documentación de diseño pero **no** son dependencias del binario: `rfd` (los diálogos son de `egui`), `lofty` (los metadatos se leen con `ffprobe`) y `unicode-normalization`.
 
 ## Herramientas externas (no enlazadas)
 
@@ -80,7 +84,22 @@ cargo metadata --format-version 1
 
 Antes de cada release:
 
-- [ ] `cargo tree --workspace --format "{p} {l}"` no muestra licencias incompatibles.
-- [ ] `Cargo.lock` no contiene el crate `yt-dlp`.
-- [ ] El instalador no incluye `ffmpeg` GPL ni pesos Demucs.
+- [x] `cargo tree --workspace --format "{p} {l}"` no muestra licencias incompatibles.
+- [x] `Cargo.lock` no contiene el crate `yt-dlp`.
+- [x] El instalador no incluye `ffmpeg` GPL ni pesos Demucs.
 - [ ] `THIRD_PARTY_NOTICES` está actualizado.
+
+## Resultado de la auditoría
+
+Auditoría del árbol de dependencias con `cargo metadata --format-version 1 --all-features` (680 paquetes de registro, sin contar los del workspace):
+
+| Comprobación | Resultado |
+|---|---|
+| Crate `yt-dlp` en el lockfile | Ausente |
+| Licencias GPL solas | Ninguna. `self_cell` (`Apache-2.0 OR GPL-2.0-only`) y `r-efi` (`MIT OR Apache-2.0 OR LGPL-2.1-or-later`) ofrecen alternativa permisiva |
+| `MPL-2.0` | Solo la familia `symphonia` y `option-ext`; se enlazan como crates separados |
+| Modelos en el repositorio o en `target` | Ninguno: `/models/` está ignorado y los pesos viven fuera del proyecto |
+| Binarios de `ffmpeg` / `yt-dlp` empaquetados | Ninguno: se detectan en `PATH` en tiempo de ejecución |
+| Modelos empaquetados en el binario | Ninguno: el `.exe` solo contiene el catálogo (`assets/models.toml`) |
+
+Los binarios release distribuyen únicamente el ejecutable de la app. El usuario aporta `yt-dlp`, `ffmpeg`/`ffprobe`, un runtime de JavaScript y descarga los modelos por separado, aceptando sus licencias en el momento de la descarga.

@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            artifact: usdx-desktop-windows-x86_64
+            binary: target/release/usdx-desktop.exe
+          - name: macOS
+            os: macos-latest
+            artifact: usdx-desktop-macos-aarch64
+            binary: target/release/usdx-desktop
+          - name: Linux
+            os: ubuntu-latest
+            artifact: usdx-desktop-linux-x86_64
+            binary: target/release/usdx-desktop
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.os }}
+
+      - name: Prepare ONNX Runtime target dirs (Windows)
+        if: runner.os == 'Windows'
+        run: New-Item -ItemType Directory -Force target\release\build\examples,target\release\build\deps
+
+      - name: Prepare ONNX Runtime target dirs (Unix)
+        if: runner.os != 'Windows'
+        run: mkdir -p target/release/build/examples target/release/build/deps
+
+      - name: Install Linux audio and windowing headers
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libasound2-dev libxkbcommon-dev libwayland-dev libgtk-3-dev
+
+      - name: Build release
+        run: cargo build --release -p usdx-desktop
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${{ matrix.binary }}" --selftest | tee selftest.log
+          grep -q "selftest ok" selftest.log
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error
