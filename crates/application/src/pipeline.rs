@@ -23,6 +23,7 @@ use usdx_ml::{
 use usdx_ports::{CancelFlag, SeparationControl, Transcriber, TranscriptionControl};
 
 use crate::jobs::JobContext;
+use crate::lyrics::{transcript_from_record, LyricsClient, LyricsError, LyricsQuery};
 use crate::project::{atomic_write, now_unix_ms, Project, ProjectPaths, ProjectStore};
 use crate::stages::{StageId, StageStatus};
 
@@ -52,6 +53,10 @@ pub enum PipelineError {
     },
     #[error("job cancelled")]
     Cancelled,
+    /// No online lyrics were found and the local fallback model is not
+    /// downloaded yet. The app uses this to fetch Whisper on demand.
+    #[error("the local Whisper model is required but missing: {}", path.display())]
+    WhisperModelMissing { path: PathBuf },
     #[error("i/o error: {0}")]
     Io(#[from] std::io::Error),
     #[error("project error: {0}")]
@@ -134,6 +139,8 @@ impl StageProgress {
 pub struct PipelineConfig {
     pub separation_model: PathBuf,
     pub whisper_model: PathBuf,
+    /// Look the lyrics up online before falling back to Whisper.
+    pub online_lyrics: bool,
 }
 
 impl PipelineConfig {
@@ -141,7 +148,18 @@ impl PipelineConfig {
         Self {
             separation_model: separation_model.into(),
             whisper_model: whisper_model.into(),
+            online_lyrics: true,
         }
+    }
+
+    /// Keeps the whole pipeline offline.
+    pub fn offline(self) -> Self {
+        self.maybe_offline(true)
+    }
+
+    pub fn maybe_offline(mut self, offline: bool) -> Self {
+        self.online_lyrics = !offline;
+        self
     }
 }
 
@@ -257,7 +275,7 @@ impl Pipeline {
         match stage {
             StageId::Ingest => self.ingest(project, progress).await,
             StageId::Separate => self.separate(progress),
-            StageId::Transcribe => self.transcribe(project, progress),
+            StageId::Transcribe => self.transcribe(project, progress).await,
             StageId::Pitch => self.pitch(project, progress),
             StageId::Align => self.align(project, progress),
             StageId::Export => {
@@ -386,9 +404,56 @@ impl Pipeline {
         Ok(())
     }
 
-    fn transcribe(&self, project: &Project, progress: &StageProgress) -> Result<(), PipelineError> {
+    async fn transcribe(
+        &self,
+        project: &Project,
+        progress: &StageProgress,
+    ) -> Result<(), PipelineError> {
         let stage = StageId::Transcribe;
-        progress.report(0.05, "loading the Whisper model");
+
+        if self.config.online_lyrics {
+            progress.report(0.02, "looking up the lyrics online");
+            let language_hint = if project.settings.force_language {
+                project.settings.language.as_deref()
+            } else {
+                None
+            };
+            let query = LyricsQuery::from_source(
+                &project.source.title,
+                project.source.artist.as_deref(),
+                project.source.duration_ms,
+            );
+            let cancel = progress.cancel_flag();
+            match LyricsClient::new().lookup(&query, Some(&cancel)).await {
+                Ok(Some(record)) => {
+                    if let Some(transcript) = transcript_from_record(&record, language_hint) {
+                        write_json(&self.paths().transcript(), &transcript)?;
+                        progress.report(0.95, "lyrics found online");
+                        return Ok(());
+                    }
+                    tracing::info!(
+                        track = %record.track_name,
+                        "the lyrics record has no timings; falling back to Whisper"
+                    );
+                }
+                Ok(None) => {
+                    tracing::info!("no online lyrics found; falling back to Whisper");
+                }
+                Err(LyricsError::Cancelled) => return Err(PipelineError::Cancelled),
+                Err(error) => {
+                    tracing::warn!(%error, "lyrics lookup failed; falling back to Whisper");
+                }
+            }
+        }
+
+        // Whisper is downloaded on demand only when the online lookup fails.
+        if !self.config.whisper_model.exists() {
+            return Err(PipelineError::WhisperModelMissing {
+                path: self.config.whisper_model.clone(),
+            });
+        }
+
+        progress.report(0.1, "loading the Whisper model");
         let engine = WhisperEngine::new(&self.config.whisper_model)
             .map_err(|error| PipelineError::stage(stage, error))?;
         let service = TranscriptionService::new(engine, TranscriptionOptions::default());
@@ -468,6 +533,16 @@ impl Pipeline {
         Ok(())
     }
 
+    /// Folder that [`Self::export_document`] writes for `document`.
+    pub fn export_folder(&self, document: &SongDoc) -> PathBuf {
+        let folder_name = format!(
+            "{} - {}",
+            sanitize_filename(&document.header.artist),
+            sanitize_filename(&document.header.title)
+        );
+        self.paths().output_dir().join(folder_name.trim())
+    }
+
     /// Validates and writes the UltraStar folder. Also used by the editor, so
     /// a validation failure can select the offending note.
     pub fn export_document(&self, document: &SongDoc) -> Result<ExportOutcome, PipelineError> {
@@ -481,12 +556,7 @@ impl Pipeline {
         }
 
         let paths = self.paths();
-        let folder_name = format!(
-            "{} - {}",
-            sanitize_filename(&document.header.artist),
-            sanitize_filename(&document.header.title)
-        );
-        let folder = paths.output_dir().join(folder_name.trim());
+        let folder = self.export_folder(document);
         std::fs::create_dir_all(&folder)?;
 
         copy_if_present(

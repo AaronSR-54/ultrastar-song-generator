@@ -3,6 +3,9 @@
 pub mod app;
 pub mod editor;
 pub mod playback;
+pub mod settings;
+pub mod setup;
+pub mod theme;
 pub mod waveform;
 
 pub use app::App;
@@ -10,6 +13,8 @@ pub use editor::{
     EditorError, EditorState, ExportCheck, NoteSelection, AUTOSAVE_DELAY, UNDO_LIMIT,
 };
 pub use playback::{AudioEngine, LoopRange, PlaybackClock, PlaybackError, Stem};
+pub use settings::GuiSettings;
+pub use setup::FinishedSong;
 pub use waveform::{Peak, PeakPyramid};
 
 /// Starts the eframe application.

@@ -8,21 +8,21 @@ La app de escritorio (`crates/desktop`) abre proyectos, ejecuta las etapas del p
 cargo run -p usdx-desktop
 ```
 
-Antes de procesar, la app necesita los modelos locales y las herramientas externas:
+La app solo necesita un enlace de YouTube. Detecta las herramientas externas y los modelos por sí sola:
 
 | Ajuste | Origen | Ejemplo |
 |---|---|---|
 | `yt-dlp` | `PATH` | 2025.09.26 o superior |
 | `ffmpeg` / `ffprobe` | `PATH` | 6.0 o superior |
 | Runtime JS para `yt-dlp` | `PATH` | Node 22 o Deno |
-| Modelo de separación | campo «Modelo separación» | `%TEMP%\usdx-models\htdemucs.onnx` |
-| Modelo Whisper | campo «Modelo Whisper» | `%TEMP%\usdx-models\ggml-large-v3-turbo-q5_0.bin` |
+| Modelo de separación | `USDX_HTDEMUCS_MODEL` o descarga automática | `%TEMP%\usdx-models\htdemucs.onnx` |
+| Modelo Whisper | `USDX_WHISPER_MODEL`, descarga bajo demanda | `%TEMP%\usdx-models\ggml-large-v3-turbo-q5_0.bin` |
 
-Los dos campos de modelo se inicializan desde `USDX_HTDEMUCS_MODEL` y `USDX_WHISPER_MODEL`, y el botón **Aplicar modelos** guarda el cambio en el proyecto abierto. Los modelos no se incluyen en el binario: se descargan con la app o se apuntan manualmente.
+Los modelos no se incluyen en el binario: la app descarga HTDemucs la primera vez y Whisper solo si la letra online no está disponible.
 
 ## Vista de proyecto y etapas
 
-La barra superior abre un proyecto existente (ruta del proyecto) o crea uno nuevo a partir de una URL de YouTube. El panel izquierdo muestra las seis etapas con su estado:
+La ventana tiene tres pantallas: **Inicio** (URL + Procesar), **Procesando** (etapas y progreso) y **Listo** (abrir carpeta o revisar). La app crea el proyecto sola en su carpeta de datos; el engranaje abre **Ajustes**, donde se elige la carpeta de destino. Las seis etapas se muestran con su estado:
 
 | Color | Estado | Acciones |
 |---|---|---|
@@ -32,10 +32,10 @@ La barra superior abre un proyecto existente (ruta del proyecto) o crea uno nuev
 | rojo | `Failed` | Reintentar, o Ejecutar |
 | violeta | `Skipped` | Ejecutar |
 
-- **Ejecutar** lanza una etapa concreta.
-- **Procesar todo** recorre todas las etapas pendientes o fallidas en orden de dependencia y se detiene en el primer error.
+- **Procesar** recorre todas las etapas pendientes o fallidas en orden de dependencia y se detiene en el primer error.
+- **Reintentar** continúa desde la etapa que falló; las anteriores no se repiten.
 - **Cancelar** pide la cancelación cooperativa; la etapa vuelve a `Pending`, no a `Failed`.
-- El mensaje de una etapa fallida se guarda en `project.json` y se muestra bajo la etapa, junto con la acción de reintentar. Al reabrir el proyecto el error sigue visible.
+- El mensaje de una etapa fallida se guarda en `project.json` y se muestra en la pantalla de error, junto con la acción de reintentar.
 
 El pipeline escribe artefactos intermedios en `work/` (`transcript.json`, `notes.json`, `song.json`) y la etapa de exportación escribe `output/<Artista> - <Título>/`.
 

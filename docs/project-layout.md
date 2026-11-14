@@ -142,7 +142,7 @@ Transiciones permitidas:
 |---|---|---|
 | `ingest` | URL y ajustes de descarga | ingest, separate, transcribe, pitch, align, export |
 | `separate` | audio de `ingest` | separate, transcribe, pitch, align, export |
-| `transcribe` | `vocals.wav` y idioma | transcribe, align, export |
+| `transcribe` | título, artista y duración (LRCLIB) o `vocals.wav` (Whisper) | transcribe, align, export |
 | `pitch` | `vocals.wav` | pitch, align, export |
 | `align` | transcripción + pitch | align, export |
 | `export` | alineación + metadatos | export |

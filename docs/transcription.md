@@ -1,6 +1,21 @@
-# Transcripción de la letra
+# Letra: búsqueda online y transcripción
 
-Extrae la letra cantada del stem vocal con Whisper en local. No se sube audio a ningún servicio: `whisper.cpp` se enlaza en proceso mediante `whisper-rs` y el único tráfico de red de la app es la descarga de modelos y de la canción.
+La etapa `Transcribe` pide primero la letra a [LRCLIB](https://lrclib.net), una base pública, gratuita y sin clave que devuelve tiempos por palabra en muchas canciones. Si no hay un registro utilizable (letra instrumental, sin tiempos o red caída), transcribe el stem vocal con Whisper en local. El audio nunca se sube: `whisper.cpp` se enlaza en proceso mediante `whisper-rs`.
+
+## Letra online (LRCLIB)
+
+`crates/application/src/lyrics.rs` implementa el cliente y la conversión al [`Transcript`](../crates/domain/src/transcript.rs):
+
+1. `GET /api/get?track_name=…&artist_name=…&duration=…` busca la firma exacta. La duración debe coincidir con ±2 s, así que se redondea a segundos la duración de `yt-dlp`.
+2. Si no hay coincidencia, `GET /api/search` devuelve hasta 20 registros y se elige el mejor: primero la duración más cercana, después los que traen `lyricsfile` y sincronización por palabra.
+3. Cada registro incluye un documento YAML (`lyricsfile`). Si tiene `lines[].words[].start_ms`, esos tiempos se usan tal cual. Si solo hay `syncedLyrics` (LRC), cada línea se reparte entre sus palabras proporcionalmente a su longitud.
+4. Las letras sin tiempos (`plainLyrics`) se descartan: no permiten alinear notas.
+
+El idioma se toma del `metadata.language` del YAML, pero se contrasta con el texto: LRCLIB etiqueta muchas canciones españolas como `en`. La app cuenta marcadores de español, inglés y francés, detecta alfabetos no latinos y, si hay discrepancia, prioriza el texto. Un idioma forzado (`USDX_LANGUAGE`) siempre gana.
+
+El cliente se identifica con un `User-Agent`, usa un timeout de 12 s y hace como máximo dos peticiones por canción. Cualquier error de red, límite de peticiones o formato se registra y se cae a Whisper sin fallar la etapa. `USDX_OFFLINE=1` desactiva la consulta.
+
+Solo salen a la red el título, el artista y la duración. El audio, las letras descargadas y el resto del proyecto se quedan en el equipo.
 
 ## Modelo
 
@@ -29,7 +44,7 @@ Whisper large-v3-turbo es multilingüe. La app expone la lista completa mediante
 
 El resto de idiomas se transcriben, pero la revisión y la silabificación usan reglas genéricas hasta que se añada su diccionario. La detección automática se ejecuta antes de la transcripción; el usuario puede fijar el idioma antes o después y volver a transcribir. Cambiar el idioma solo invalida transcripción, alineación y exportación.
 
-## Flujo
+## Flujo de Whisper (respaldo)
 
 1. Se lee `work/stems/vocals.wav`, se convierte a mono y se remuestrea a 16 kHz con `charon-audio`.
 2. `WhisperContext::create_state` + `pcm_to_mel` preparan el audio.
@@ -115,5 +130,5 @@ La prueba real (`real_model_end_to_end`, marcada `#[ignore]`) exige que el espa�
 ## Privacidad
 
 - `whisper-rs` no abre conexiones de red.
-- La única red del pipeline es `yt-dlp` (descarga) y la descarga de modelos.
+- La red del pipeline se limita a `yt-dlp` (descarga de la canción), la descarga de modelos y la consulta de letras a LRCLIB (título, artista y duración).
 - El audio, el transcript y los modelos permanecen en el equipo del usuario.

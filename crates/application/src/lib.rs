@@ -2,6 +2,7 @@
 
 pub mod hash;
 pub mod jobs;
+pub mod lyrics;
 pub mod models;
 pub mod pipeline;
 pub mod project;
@@ -11,6 +12,7 @@ pub use hash::{hash_bytes, hash_file, hash_json};
 pub use jobs::{
     CancelFlag, JobContext, JobError, JobEvent, JobHandle, JobRunner, ProgressReporter,
 };
+pub use lyrics::{transcript_from_record, LyricsClient, LyricsError, LyricsQuery, LyricsRecord};
 pub use models::{
     choose_backend, Backend, BackendChoice, BackendPreference, CatalogError, Hardware,
     ModelCatalog, ModelDownloader, ModelError, ModelPurpose, ModelSpec, ModelStore,

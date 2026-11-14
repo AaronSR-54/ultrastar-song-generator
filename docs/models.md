@@ -9,7 +9,7 @@ La app no incluye los modelos en el repositorio. Los descarga bajo demanda, con 
 | `htdemucs` | Separación de voz e instrumental | 316 446 953 B (~302 MB) | Pesos Demucs para uso científico; export ONNX MIT |
 | `whisper-large-v3-turbo-q5` | Transcripción | 574 041 195 B (~547 MB) | MIT |
 
-Total aproximado: **849 MB**.
+Total aproximado: **849 MB**, aunque en el uso normal solo se descarga HTDemucs. Whisper es el respaldo cuando no hay letra online.
 
 Cada entrada del catálogo (`crates/application/assets/models.toml`) incluye id, nombre, finalidad, archivo, URL HTTPS, tamaño, SHA-256, licencia y requisitos. `ModelCatalog::validate` rechaza URLs no HTTPS, hashes que no sean 64 caracteres hexadecimales, nombres de archivo con rutas, licencias vacías y duplicados.
 
@@ -19,16 +19,14 @@ Para inspeccionar el catálogo y el estado local:
 cargo run -p usdx-application --example models
 ```
 
-## Consentimiento
+## Descarga automática
 
-Antes de descargar, la app muestra:
+La app resuelve los modelos antes de procesar y descarga lo que falte, mostrando el nombre del modelo y el porcentaje:
 
-- Qué modelo se necesita y para qué etapa.
-- Tamaño de la descarga y espacio libre.
-- Licencia y aviso de uso.
-- Acciones **Descargar** y **Ahora no**.
+- HTDemucs se descarga al pulsar **Procesar** la primera vez.
+- Whisper se descarga solo si la búsqueda de letra online no devuelve nada utilizable.
 
-Rechazar la descarga bloquea la etapa correspondiente, pero no rompe el proyecto ni el resto de la interfaz. No se inicia ninguna descarga automática.
+La descarga se puede cancelar como cualquier otra etapa. Un fallo de red deja el `.part` en disco y **Reintentar** lo reanuda.
 
 ## Almacenamiento
 
@@ -40,7 +38,7 @@ Ruta por defecto, vía `directories::ProjectDirs`:
 | macOS | `~/Library/Application Support/ultrastar-song-generator/models` |
 | Linux | `~/.local/share/ultrastar-song-generator/models` |
 
-La ruta se puede cambiar desde la configuración. `ModelStore::check_space` comprueba el espacio disponible con `fs4` antes de descargar y rechaza la operación si no cabe. `ModelStore::delete` borra el modelo y su `.part`; la app indica qué etapas dejan de estar disponibles.
+La ruta se puede cambiar con `USDX_MODELS_DIR`. `ModelStore::check_space` comprueba el espacio disponible con `fs4` antes de descargar y rechaza la operación si no cabe. `ModelStore::delete` borra el modelo y su `.part`; la app indica qué etapas dejan de estar disponibles.
 
 ## Descarga, reanudación e integridad
 
@@ -53,7 +51,7 @@ La ruta se puede cambiar desde la configuración. `ModelStore::check_space` comp
 
 ## Modo offline
 
-Si todos los modelos requeridos por las etapas activas están presentes y verificados, separación y transcripción funcionan sin red. Si falta un modelo y no hay conexión, la app lo explica y no entra en un bucle de reintentos.
+Con `USDX_OFFLINE=1` la app no consulta LRCLIB y usa Whisper directamente, así que necesita los dos modelos verificados en disco. Sin esa variable, si falla la red o no hay letra, la app cae a Whisper y, si el modelo falta, muestra el error con la acción de reintentar en lugar de entrar en un bucle.
 
 ## Hardware y backends
 

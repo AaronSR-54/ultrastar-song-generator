@@ -7,6 +7,7 @@
 //!   file is encoded to `source/audio-source.mp3` with ffmpeg.
 //! - `USDX_HTDEMUCS_MODEL`, `USDX_WHISPER_MODEL` (required): local model paths.
 //! - `USDX_LANGUAGE` (optional): ISO code forced for transcription.
+//! - `USDX_OFFLINE=1` (optional): skip the online lyrics lookup.
 //! - `USDX_COVER` (optional): image copied to `source/cover.jpg` in local mode.
 //!
 //! Run:
@@ -129,11 +130,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         store.save(&project)?;
     }
 
-    let pipeline = Pipeline::new(
-        store.clone(),
-        toolchain,
-        PipelineConfig::new(separation_model, whisper_model),
-    );
+    let mut config = PipelineConfig::new(separation_model, whisper_model);
+    if env("USDX_OFFLINE").is_some() {
+        config = config.offline();
+    }
+    let pipeline = Pipeline::new(store.clone(), toolchain, config);
 
     let mut timings: Vec<(StageId, f64)> = Vec::new();
     for stage in StageId::ALL {
