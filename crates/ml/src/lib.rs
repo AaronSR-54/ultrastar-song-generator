@@ -1,12 +1,19 @@
 //! Local inference adapters: source separation, transcription and pitch tracking.
 
+pub mod hallucination;
 pub mod pitch_analysis;
 pub mod quantize;
 pub mod separation;
 pub mod separation_service;
 pub mod tempo;
+pub mod transcript_edit;
+pub mod transcription;
 pub mod vocal_energy;
 
+pub use hallucination::{
+    filter_segments, normalize_text, DiscardReport, EnergyTrack, FilterOutcome,
+    HallucinationOptions, RawSegment, RawWord, SegmentStats,
+};
 pub use pitch_analysis::{
     analyze_file, analyze_file_with, segment_notes, PitchAnalysis, PitchFrame, PitchNote,
     PitchOptions,
@@ -15,4 +22,14 @@ pub use quantize::{quantize, QuantizationAdjustment, QuantizedNote, QuantizedSon
 pub use separation::CharonSeparator;
 pub use separation_service::SeparationService;
 pub use tempo::{estimate_tempo, TempoCandidate, TempoEstimate};
+pub use transcript_edit::{
+    correct_word, delete_line, delete_word, merge_line_with_next, reapply_syllables, split_line,
+    Syllabifier, TranscriptEditError,
+};
+pub use transcription::{
+    build_transcript, is_transient_whisper_failure, load_vocals_16k, make_monotonic,
+    transcription_capabilities, whisper_languages, AsrEngine, AsrOutput, LanguageInfo,
+    TranscriptionCapabilities, TranscriptionOptions, TranscriptionService, WhisperEngine,
+    MAX_ENCODE_ATTEMPTS, WHISPER_MODEL_ID, WHISPER_MODEL_SIZE_BYTES, WHISPER_SAMPLE_RATE,
+};
 pub use vocal_energy::{analyze_vocal_energy, VocalEnergy};

@@ -68,12 +68,12 @@
 
 ## 8. Transcripción de letra
 
-- [ ] 8.1 Integrar `whisper-rs`, carga de modelo multilingüe y ejecución sobre el stem vocal a 16 kHz; verificar con un fragmento de voz de prueba y sin red.
-- [ ] 8.2 Implementar palabras con inicio/fin monótonos, confianza y detección/forzado de idioma; verificar con un audio en español y otro en inglés.
-- [ ] 8.3 Implementar el filtro de alucinaciones por energía/sonoridad, umbral de no-speech y repeticiones; verificar con un fragmento instrumental y otro con voz.
-- [ ] 8.4 Implementar la edición del texto (corregir palabra, unir/separar frase, borrar línea) conservando tiempos; verificar que la silabificación se recalcula solo en la palabra afectada.
-- [ ] 8.5 Añadir tests de integración con un fixture de voz CC0 y tests unitarios con motor simulado; verificar que no se sube audio a red.
-- [ ] 8.6 Documentar idiomas soportados, tamaño de modelos y límites en `docs/transcription.md`; verificar que la app muestra la misma información.
+- [x] 8.1 Integrar `whisper-rs`, carga de modelo multilingüe y ejecución sobre el stem vocal a 16 kHz; verificar con un fragmento de voz de prueba y sin red.
+- [x] 8.2 Implementar palabras con inicio/fin monótonos, confianza y detección/forzado de idioma; verificar con un audio en español y otro en inglés.
+- [x] 8.3 Implementar el filtro de alucinaciones por energía/sonoridad, umbral de no-speech y repeticiones; verificar con un fragmento instrumental y otro con voz.
+- [x] 8.4 Implementar la edición del texto (corregir palabra, unir/separar frase, borrar línea) conservando tiempos; verificar que la silabificación se recalcula solo en la palabra afectada.
+- [x] 8.5 Añadir tests de integración con un fixture de voz CC0 y tests unitarios con motor simulado; verificar que no se sube audio a red.
+- [x] 8.6 Documentar idiomas soportados, tamaño de modelos y límites en `docs/transcription.md`; verificar que la app muestra la misma información.
 
 ## 9. Silabificación y alineación
 
