@@ -120,6 +120,22 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 Instala Deno o Node para `yt-dlp`. `rodio`/`cpal` necesitan ALSA; sin `libasound2-dev` la compilación falla.
 
+### 5. ONNX Runtime en Windows
+
+`charon-audio` usa `ort` con `copy-dylibs`, que en Windows espera que existan `target\<perfil>\build\examples` y `target\<perfil>\build\deps`. Créalas antes de compilar:
+
+```powershell
+New-Item -ItemType Directory -Force target\debug\build\examples,target\debug\build\deps
+```
+
+Para tests y ejecución, añade `target\debug\build` al `PATH` (contiene `DirectML.dll`):
+
+```powershell
+$env:Path = "$PWD\target\debug\build;$env:Path"
+```
+
+Para `--release`, usa `target\release\build`.
+
 ## Verificación
 
 Desde la raíz del repositorio:

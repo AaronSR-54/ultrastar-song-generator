@@ -1,0 +1,23 @@
+schema_version = 1
+
+[[models]]
+id = "htdemucs"
+name = "HTDemucs 4-stem"
+purpose = "separation"
+filename = "htdemucs.onnx"
+url = "https://huggingface.co/StemSplitio/htdemucs-onnx/resolve/main/htdemucs.onnx"
+size_bytes = 316446953
+sha256 = "68d0bf16428ef66e692cdff8a9ccf28f1ef3f69440d57e58605a4cc55fcc5e74"
+license = "Demucs weights are provided for scientific use; ONNX export MIT"
+requirements = "CPU or GPU; about 2 GB of RAM"
+
+[[models]]
+id = "whisper-large-v3-turbo-q5"
+name = "Whisper large-v3-turbo (q5_0)"
+purpose = "transcription"
+filename = "ggml-large-v3-turbo-q5_0.bin"
+url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin"
+size_bytes = 574041195
+sha256 = "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2"
+license = "MIT"
+requirements = "CPU or GPU; about 1 GB of RAM"

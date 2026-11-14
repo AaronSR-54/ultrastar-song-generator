@@ -8,7 +8,12 @@ rust-version.workspace = true
 [dependencies]
 usdx-domain = { path = "../domain" }
 usdx-ports = { path = "../ports" }
+charon-audio = "0.1.2"
+ndarray.workspace = true
 ort.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tracing.workspace = true

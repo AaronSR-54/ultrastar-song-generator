@@ -49,12 +49,12 @@
 
 ## 6. Separación de voz
 
-- [ ] 6.1 Definir el trait `StemSeparator` y el adaptador `charon-audio` con carga de modelo y configuración; verificar con un modelo de prueba y un audio sintético.
-- [ ] 6.2 Generar `vocals.wav` e `instrumental.wav` con la misma frecuencia, canales y duración que la entrada; verificar longitudes muestra a muestra y suma aproximada a la mezcla.
-- [ ] 6.3 Implementar progreso por fragmentos, cancelación y reintento CPU ante OOM; verificar con un backend simulado que agota memoria y con cancelación a mitad.
-- [ ] 6.4 Implementar la medición de energía vocal y el aviso de voz insuficiente; verificar con un audio instrumental y con voz sintética.
-- [ ] 6.5 Añadir tests de integración con una mezcla sintética (voz + tonos) y métricas mínimas de separación; verificar que el test es determinista.
-- [ ] 6.6 Documentar el motor, límites de memoria y licencia de pesos en `docs/separation.md`; verificar que las cifras coinciden con una ejecución real.
+- [x] 6.1 Definir el trait `StemSeparator` y el adaptador `charon-audio` con carga de modelo y configuración; verificar con un modelo de prueba y un audio sintético.
+- [x] 6.2 Generar `vocals.wav` e `instrumental.wav` con la misma frecuencia, canales y duración que la entrada; verificar longitudes muestra a muestra y suma aproximada a la mezcla.
+- [x] 6.3 Implementar progreso por fragmentos, cancelación y reintento CPU ante OOM; verificar con un backend simulado que agota memoria y con cancelación a mitad.
+- [x] 6.4 Implementar la medición de energía vocal y el aviso de voz insuficiente; verificar con un audio instrumental y con voz sintética.
+- [x] 6.5 Añadir tests de integración con una mezcla sintética (voz + tonos) y métricas mínimas de separación; verificar que el test es determinista.
+- [x] 6.6 Documentar el motor, límites de memoria y licencia de pesos en `docs/separation.md`; verificar que las cifras coinciden con una ejecución real.
 
 ## 7. Análisis de pitch y tempo
 
