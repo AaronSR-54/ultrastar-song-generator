@@ -6,18 +6,18 @@
 - [x] 1.2 Crear el workspace con `domain`, `ports`, `media`, `ml`, `usdx`, `application` y `desktop`; verificar con `cargo check --workspace`.
 - [x] 1.3 Fijar `ort = 2.0.0-rc.13` y generar `Cargo.lock`; verificar que `cargo tree -d -i ort` muestra una sola versión.
 - [x] 1.4 Añadir CI de `cargo fmt --check`, `cargo clippy -- -D warnings` y `cargo test --workspace`; verificar que el workflow pasa en un commit de prueba.
-- [ ] 1.5 Documentar prerrequisitos de build por sistema operativo en `docs/setup.md`; verificar siguiendo las instrucciones en una carpeta limpia.
-- [ ] 1.6 Crear `docs/licenses.md` con la matriz de licencias del diseño; verificar que incluye `yt-dlp` GPL, `ffmpeg` LGPL/GPL y pesos Demucs.
+- [x] 1.5 Documentar prerrequisitos de build por sistema operativo en `docs/setup.md`; verificar siguiendo las instrucciones en una carpeta limpia.
+- [x] 1.6 Crear `docs/licenses.md` con la matriz de licencias del diseño; verificar que incluye `yt-dlp` GPL, `ffmpeg` LGPL/GPL y pesos Demucs.
 
 ## 2. Núcleo del formato UltraStar
 
-- [ ] 2.1 Implementar las entidades `SongDoc`, `Note`, `Phrase`, `Syllable` y `SongHeader` con serialización; verificar con tests de igualdad y valores por defecto.
-- [ ] 2.2 Implementar el parser tolerante de `.txt` (BOM, CRLF/LF, coma/punto, etiquetas, `E`, `#END`, secciones `P1`/`P2`); verificar con tests unitarios por caso.
-- [ ] 2.3 Implementar el writer determinista (UTF-8 sin BOM, LF, coma decimal, espacio inicial de palabra, `~`, cortes `-`, `E`); verificar con snapshots de archivos esperados.
-- [ ] 2.4 Implementar las conversiones `beat↔ms` con `t = GAP + beat*60000/(BPM*4)` y `pitch = round(midi)-60`; verificar con los casos Adele Hello y Take On Me calculados en el diseño.
-- [ ] 2.5 Implementar el validador previo a exportar (cabeceras, beats, longitud, pitch, solapes, texto vacío, frases); verificar con un test por regla y un archivo válido de control.
-- [ ] 2.6 Añadir test de ida y vuelta sobre las referencias: parsear los 132 `.txt`, contar notas y comparar semánticamente los de una sola voz; verificar con `USDX_REFS_DIR` apuntando a `refs/`.
-- [ ] 2.7 Documentar el subconjunto del formato soportado y las diferencias con duetos en `docs/usdx-format.md`; verificar que los ejemplos del documento se parsean en un test.
+- [x] 2.1 Implementar las entidades `SongDoc`, `Note`, `Phrase`, `Syllable` y `SongHeader` con serialización; verificar con tests de igualdad y valores por defecto.
+- [x] 2.2 Implementar el parser tolerante de `.txt` (BOM, CRLF/LF, coma/punto, etiquetas, `E`, `#END`, secciones `P1`/`P2`); verificar con tests unitarios por caso.
+- [x] 2.3 Implementar el writer determinista (UTF-8 sin BOM, LF, coma decimal, espacio inicial de palabra, `~`, cortes `-`, `E`); verificar con snapshots de archivos esperados.
+- [x] 2.4 Implementar las conversiones `beat↔ms` con `t = GAP + beat*60000/(BPM*4)` y `pitch = round(midi)-60`; verificar con los casos Adele Hello y Take On Me calculados en el diseño.
+- [x] 2.5 Implementar el validador previo a exportar (cabeceras, beats, longitud, pitch, solapes, texto vacío, frases); verificar con un test por regla y un archivo válido de control.
+- [x] 2.6 Añadir test de ida y vuelta sobre las referencias: parsear los 132 `.txt`, contar notas y comparar semánticamente los de una sola voz; verificar con `USDX_REFS_DIR` apuntando a `refs/`.
+- [x] 2.7 Documentar el subconjunto del formato soportado y las diferencias con duetos en `docs/usdx-format.md`; verificar que los ejemplos del documento se parsean en un test.
 
 ## 3. Proyecto, persistencia y orquestación
 
