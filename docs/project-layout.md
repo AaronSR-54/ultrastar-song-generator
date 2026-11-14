@@ -8,7 +8,7 @@ Cada canción en preparación vive en su propia carpeta. Todo es inspeccionable 
 <project>/
   project.json
   source/
-    audio-source.m4a
+    audio-source.mp3
     cover.jpg
     video.mp4              # opcional
   work/

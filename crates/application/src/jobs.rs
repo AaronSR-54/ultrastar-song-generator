@@ -9,6 +9,8 @@ use tokio::runtime::Handle;
 
 use crate::stages::StageId;
 
+pub use usdx_ports::CancelFlag;
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum JobError {
     #[error("another heavy job is already running")]
@@ -27,19 +29,6 @@ pub enum JobEvent {
         message: String,
     },
     Finished(Result<(), JobError>),
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct CancelFlag(Arc<AtomicBool>);
-
-impl CancelFlag {
-    pub fn cancel(&self) {
-        self.0.store(true, Ordering::Release);
-    }
-
-    pub fn is_cancelled(&self) -> bool {
-        self.0.load(Ordering::Acquire)
-    }
 }
 
 #[derive(Debug, Clone)]

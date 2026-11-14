@@ -30,13 +30,13 @@
 
 ## 4. Ingesta de medios
 
-- [ ] 4.1 Implementar la detección de `yt-dlp`, `ffmpeg` y runtime JavaScript (Deno/Node) con versiones y errores accionables; verificar con rutas válidas, ausentes y versiones antiguas.
-- [ ] 4.2 Implementar la obtención de metadatos (`--dump-single-json`) y la sanitización de nombres portables; verificar con títulos con `:`, `/`, `?`, emoji y acentos.
-- [ ] 4.3 Implementar la descarga de audio de alta calidad y la generación del WAV mono 48 kHz; verificar duración, canales y frecuencia contra el original.
-- [ ] 4.4 Implementar la descarga y recorte cuadrado de carátula, y la sustitución por imagen local; verificar con una miniatura y una imagen inválida.
-- [ ] 4.5 Implementar la descarga opcional de vídeo y su omisión ante ausencia o desactivación; verificar ambos caminos sin fallar el proyecto.
-- [ ] 4.6 Implementar el adaptador de procesos con timeouts, cancelación y limpieza de `.part`; verificar con scripts falsos que simulan éxito, error y cancelación.
-- [ ] 4.7 Documentar la dependencia de Deno/Node y los errores típicos de YouTube en `docs/media-ingestion.md`; verificar ejecutando una descarga real de prueba y registrando el resultado.
+- [x] 4.1 Implementar la detección de `yt-dlp`, `ffmpeg` y runtime JavaScript (Deno/Node) con versiones y errores accionables; verificar con rutas válidas, ausentes y versiones antiguas.
+- [x] 4.2 Implementar la obtención de metadatos (`--dump-single-json`) y la sanitización de nombres portables; verificar con títulos con `:`, `/`, `?`, emoji y acentos.
+- [x] 4.3 Implementar la descarga de audio de alta calidad y la generación del WAV mono 48 kHz; verificar duración, canales y frecuencia contra el original.
+- [x] 4.4 Implementar la descarga y recorte cuadrado de carátula, y la sustitución por imagen local; verificar con una miniatura y una imagen inválida.
+- [x] 4.5 Implementar la descarga opcional de vídeo y su omisión ante ausencia o desactivación; verificar ambos caminos sin fallar el proyecto.
+- [x] 4.6 Implementar el adaptador de procesos con timeouts, cancelación y limpieza de `.part`; verificar con scripts falsos que simulan éxito, error y cancelación.
+- [x] 4.7 Documentar la dependencia de Deno/Node y los errores típicos de YouTube en `docs/media-ingestion.md`; verificar ejecutando una descarga real de prueba y registrando el resultado.
 
 ## 5. Gestión de modelos
 

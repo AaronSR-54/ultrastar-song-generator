@@ -14,7 +14,7 @@ Estas son las versiones con las que se validó el proyecto por primera vez:
 | LLVM/clang | 23.1.5 |
 | Node | 22.14.0 (runtime JavaScript para `yt-dlp`) |
 | ffmpeg | 8.0 |
-| yt-dlp | 2025.09.26 |
+| yt-dlp | 2026.10.21 |
 
 Las versiones mínimas del proyecto son Rust 1.89 (por `charon-audio`/`ort`) y CMake 3.20. Las versiones más recientes de las herramientas deberían funcionar, pero si cambias una, vuelve a ejecutar la verificación.
 

@@ -207,7 +207,7 @@ impl ProjectPaths {
     }
 
     pub fn source_audio(&self) -> PathBuf {
-        self.source_dir().join("audio-source.m4a")
+        self.source_dir().join("audio-source.mp3")
     }
 
     pub fn analysis_wav(&self) -> PathBuf {

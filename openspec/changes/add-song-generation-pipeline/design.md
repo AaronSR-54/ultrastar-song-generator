@@ -124,7 +124,7 @@ Cada proyecto es una carpeta inspeccionable:
 ```
 <project>/
   project.json                 # esquema versionado, ajustes, estados, hashes
-  source/audio-source.m4a      # original de alta calidad
+  source/audio-source.mp3      # original de alta calidad
   source/cover.jpg
   source/video.mp4             # opcional
   work/audio-48k-mono.wav      # análisis
