@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+
+use crate::process::std_command;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ToolKind {
@@ -193,7 +194,7 @@ fn detect_tool(kind: ToolKind, overrides: &HashMap<ToolKind, PathBuf>) -> Option
 }
 
 fn detect_at(kind: ToolKind, path: &Path) -> Option<Tool> {
-    let output = Command::new(path).arg(kind.version_arg()).output().ok()?;
+    let output = std_command(path).arg(kind.version_arg()).output().ok()?;
     if !output.status.success() {
         return None;
     }

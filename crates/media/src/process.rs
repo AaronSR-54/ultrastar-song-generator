@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
 use std::process::ExitStatus;
@@ -5,6 +6,32 @@ use std::time::Duration;
 
 use tokio::process::Command;
 use usdx_ports::CancelFlag;
+
+/// Hides the console window Windows would otherwise create for console tools
+/// started from a GUI process (`yt-dlp`, `ffmpeg`, `ffprobe`…).
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+/// Synchronous command that never flashes a console window.
+pub fn std_command(program: impl AsRef<OsStr>) -> std::process::Command {
+    #[allow(unused_mut)]
+    let mut command = std::process::Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
+/// Asynchronous command that never flashes a console window.
+pub fn tokio_command(program: impl AsRef<OsStr>) -> Command {
+    #[allow(unused_mut)]
+    let mut command = Command::new(program);
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
+    command
+}
 
 #[derive(Debug)]
 pub struct ProcessOutput {

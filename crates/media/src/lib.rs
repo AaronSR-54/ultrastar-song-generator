@@ -15,5 +15,7 @@ pub use cover::{
 pub use download::{validate_url, DownloadError, MediaDownloader};
 pub use filename::{sanitize_filename, unique_path};
 pub use metadata::{parse_yt_dlp_json, MetadataError, VideoMetadata};
-pub use process::{cleanup_partials, run, run_checked, ProcessError, ProcessOutput};
+pub use process::{
+    cleanup_partials, run, run_checked, std_command, tokio_command, ProcessError, ProcessOutput,
+};
 pub use tools::{Tool, ToolKind, Toolchain, ToolchainError, ToolchainIssue};

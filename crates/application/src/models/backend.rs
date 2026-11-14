@@ -1,6 +1,5 @@
-use std::process::Command;
-
 use serde::{Deserialize, Serialize};
+use usdx_media::std_command;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -35,7 +34,7 @@ pub struct Hardware {
 
 impl Hardware {
     pub fn detect() -> Self {
-        let cuda = Command::new("nvidia-smi")
+        let cuda = std_command("nvidia-smi")
             .args(["--query-gpu=name", "--format=csv,noheader"])
             .output()
             .map(|output| output.status.success() && !output.stdout.is_empty())

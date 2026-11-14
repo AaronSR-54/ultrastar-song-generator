@@ -1,10 +1,9 @@
 use std::path::Path;
 use std::time::Duration;
 
-use tokio::process::Command;
 use usdx_ports::CancelFlag;
 
-use crate::process::{run_checked, ProcessError};
+use crate::process::{run_checked, tokio_command, ProcessError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AudioProbe {
@@ -32,7 +31,7 @@ pub async fn probe(
     media: &Path,
     cancel: Option<CancelFlag>,
 ) -> Result<AudioProbe, AudioError> {
-    let mut command = Command::new(ffprobe);
+    let mut command = tokio_command(ffprobe);
     command.args([
         "-v",
         "error",
@@ -100,7 +99,7 @@ pub async fn convert_to_analysis_wav(
     if let Some(parent) = output.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let mut command = Command::new(ffmpeg);
+    let mut command = tokio_command(ffmpeg);
     command.args(["-y", "-i"]);
     command.arg(input);
     command.args(["-vn", "-ac", "1", "-ar", "48000", "-c:a", "pcm_s16le"]);
@@ -150,7 +149,7 @@ mod tests {
         let input = directory.path().join("input.wav");
         let analysis = directory.path().join("analysis.wav");
 
-        let mut generate = Command::new(&ffmpeg.path);
+        let mut generate = tokio_command(&ffmpeg.path);
         generate.args([
             "-y",
             "-f",

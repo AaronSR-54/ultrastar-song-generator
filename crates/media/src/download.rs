@@ -6,7 +6,7 @@ use url::Url;
 use usdx_ports::CancelFlag;
 
 use crate::metadata::{parse_yt_dlp_json, MetadataError, VideoMetadata};
-use crate::process::{cleanup_partials, run_checked, ProcessError};
+use crate::process::{cleanup_partials, run_checked, std_command, tokio_command, ProcessError};
 use crate::tools::{Toolchain, ToolchainError};
 
 #[derive(Debug, thiserror::Error)]
@@ -63,7 +63,7 @@ impl MediaDownloader {
             .ok_or(DownloadError::MissingTool("yt-dlp"))?;
         self.require_js_runtime()?;
 
-        let mut command = Command::new(&yt_dlp.path);
+        let mut command = tokio_command(&yt_dlp.path);
         command.args([
             "--dump-single-json",
             "--no-playlist",
@@ -96,7 +96,7 @@ impl MediaDownloader {
         self.require_js_runtime()?;
 
         let output_template = source_dir.join("audio-source.%(ext)s");
-        let mut command = Command::new(&yt_dlp.path);
+        let mut command = tokio_command(&yt_dlp.path);
         command.args([
             "-f",
             "bestaudio/best",
@@ -149,7 +149,7 @@ impl MediaDownloader {
             return Ok(None);
         };
         let output_template = source_dir.join("video.%(ext)s");
-        let mut command = Command::new(&yt_dlp.path);
+        let mut command = tokio_command(&yt_dlp.path);
         command.args([
             "-f",
             "bv*+ba/b",
@@ -208,10 +208,7 @@ fn detect_js_runtimes_flag(toolchain: &Toolchain) -> bool {
     let Some(yt_dlp) = toolchain.yt_dlp.as_ref() else {
         return false;
     };
-    let Ok(output) = std::process::Command::new(&yt_dlp.path)
-        .arg("--help")
-        .output()
-    else {
+    let Ok(output) = std_command(&yt_dlp.path).arg("--help").output() else {
         return false;
     };
     let text = format!(
