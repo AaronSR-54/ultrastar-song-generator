@@ -1,0 +1,26 @@
+# Referencias locales de UltraStar WorldParty (5,4 GB, contenido con derechos)
+/refs/
+
+# Rust
+/target/
+**/*.rs.bk
+
+# Modelos y artefactos generados
+/models/
+/projects/
+/work/
+/output/
+*.part
+
+# Entornos y secretos
+.env
+.env.*
+*.local
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+.idea/
+.vscode/
