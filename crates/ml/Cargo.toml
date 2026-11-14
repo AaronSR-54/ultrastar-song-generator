@@ -10,6 +10,7 @@ usdx-domain = { path = "../domain" }
 usdx-format = { path = "../usdx" }
 usdx-ports = { path = "../ports" }
 charon-audio = "0.1.2"
+hyphenation = { version = "0.8.4", features = ["embed_all"] }
 ndarray.workspace = true
 ort.workspace = true
 pitch-core = "0.1.1"

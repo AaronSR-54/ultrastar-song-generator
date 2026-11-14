@@ -77,12 +77,12 @@
 
 ## 9. Silabificación y alineación
 
-- [ ] 9.1 Implementar la silabificación es/en con diccionarios embebidos y reglas de diptongos/hiatos; verificar "canción", "don't", "every" y una palabra desconocida.
-- [ ] 9.2 Implementar el DP monotónico sílabas↔notas con anclas por palabra y costes del diseño; verificar con un caso sintético de correspondencia uno a uno.
-- [ ] 9.3 Implementar notas de continuación `~`, agrupación de sílabas sobrantes y cortes de frase; verificar melisma, notas extra y pausas.
-- [ ] 9.4 Implementar confianza por sílaba/frase y marcado de dudas; verificar umbrales con casos altos y bajos.
-- [ ] 9.5 Añadir tests de propiedad: ninguna sílaba se pierde, el orden temporal es monótono y ninguna frase tiene solapes; verificar con datos generados.
-- [ ] 9.6 Documentar el algoritmo, supuestos y limitaciones en `docs/alignment.md`; verificar que el ejemplo del documento produce el resultado indicado.
+- [x] 9.1 Implementar la silabificación es/en con diccionarios embebidos y reglas de diptongos/hiatos; verificar "canción", "don't", "every" y una palabra desconocida.
+- [x] 9.2 Implementar el DP monotónico sílabas↔notas con anclas por palabra y costes del diseño; verificar con un caso sintético de correspondencia uno a uno.
+- [x] 9.3 Implementar notas de continuación `~`, agrupación de sílabas sobrantes y cortes de frase; verificar melisma, notas extra y pausas.
+- [x] 9.4 Implementar confianza por sílaba/frase y marcado de dudas; verificar umbrales con casos altos y bajos.
+- [x] 9.5 Añadir tests de propiedad: ninguna sílaba se pierde, el orden temporal es monótono y ninguna frase tiene solapes; verificar con datos generados.
+- [x] 9.6 Documentar el algoritmo, supuestos y limitaciones en `docs/alignment.md`; verificar que el ejemplo del documento produce el resultado indicado.
 
 ## 10. Editor de revisión
 

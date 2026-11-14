@@ -18,9 +18,25 @@ pub enum TranscriptEditError {
 }
 
 /// Minimal syllabification interface consumed by [`reapply_syllables`].
-/// The real implementation lives in the alignment module.
+/// The real implementation lives in [`crate::syllabify`].
 pub trait Syllabifier {
     fn syllables(&self, language: &str, word: &str) -> Vec<String>;
+
+    /// Same split plus whether the dictionary recognised the word. Unknown
+    /// words use a fallback split and must be flagged for review.
+    fn split(&self, language: &str, word: &str) -> SyllableSplit {
+        SyllableSplit {
+            syllables: self.syllables(language, word),
+            known: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyllableSplit {
+    pub syllables: Vec<String>,
+    /// False when no dictionary covered the word and a fallback rule was used.
+    pub known: bool,
 }
 
 /// Corrects a word in place, keeping its start and end times.
