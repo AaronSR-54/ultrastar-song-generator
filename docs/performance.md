@@ -75,3 +75,21 @@ Resultado: **132 archivos** (132 de una voz, 0 duetos), **63 656 notas**, todos 
 - El reintento de Whisper (`MAX_ENCODE_ATTEMPTS = 5`) está incluido en los tiempos; un intento fallido cuesta unos 8 s.
 - La primera ejecución incluye la carga de los modelos (547 MB de Whisper y 316 MB de HTDemucs) en memoria; el tiempo de carga está dentro de las cifras de cada etapa.
 - El modo local del ejemplo codifica el audio a MP3 y genera el WAV de análisis antes de separar, para que el proyecto quede igual que tras un ingest real.
+
+## Prueba en UltraStar WorldParty
+
+Se copió el árbol de instalación de UltraStar WorldParty 21.02 (sin las canciones originales) a una carpeta temporal, se añadió la canción exportada en `songs/Voz Sintetica - Cancion de prueba/` y se arrancó `WorldPartyDebug.exe` con `SDL_VIDEODRIVER=dummy` y `SDL_AUDIODRIVER=dummy`.
+
+Resultado del propio escáner del juego (`Error.log`):
+
+```
+STATUS: Searching for songs [SongList]
+STATUS: Search complete: 133 songs found (0 with errors) [SongList]
+```
+
+- 133 = 132 canciones de referencia + la generada, así que el juego **encuentra** la carpeta nueva.
+- **0 errores** para la canción generada; los únicos avisos son de dos canciones de referencia que apuntan a vídeos ausentes y un `#EDITION` vacío ajeno a este proyecto.
+- El `.mp3` exportado decodifica como MP3 estéreo a 22 050 Hz y 10,04 s.
+- La última nota (`start 266`, `length 4`) termina en `232 + 270 · 60 000 / (449,39 · 4) ≈ 9,24 s`, dentro de la duración del audio.
+
+La comprobación visual y de reproducción con la ventana del juego en una máquina con pantalla y tarjeta de sonido sigue siendo manual; el escaneo, la estructura de carpeta y los tiempos son los que valida esta prueba.

@@ -134,7 +134,7 @@ impl App {
             url: url.to_string(),
             ..SourceInfo::default()
         };
-        match ProjectStore::create(root.clone(), source, ProjectSettings::default()) {
+        match ProjectStore::create(root.clone(), source, default_settings()) {
             Ok((store, project)) => {
                 self.project_path = root.display().to_string();
                 let config =
@@ -1136,6 +1136,21 @@ impl App {
         if reload {
             self.load_editor();
         }
+    }
+}
+
+/// Project defaults, honouring the optional `USDX_LANGUAGE` override so the
+/// language documented in the user guide also applies to projects created from
+/// the GUI.
+fn default_settings() -> ProjectSettings {
+    let language = std::env::var("USDX_LANGUAGE")
+        .ok()
+        .map(|value| value.trim().to_lowercase())
+        .filter(|value| !value.is_empty());
+    ProjectSettings {
+        force_language: language.is_some(),
+        language,
+        ..ProjectSettings::default()
     }
 }
 
