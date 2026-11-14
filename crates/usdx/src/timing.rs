@@ -1,9 +1,8 @@
-use usdx_domain::{Pitch, SongHeader};
+use usdx_domain::SongHeader;
 
-/// Lowest representable MIDI note (0) shifted to UltraStar pitch.
-pub const PITCH_MIN: Pitch = -60;
-/// Highest representable MIDI note (127) shifted to UltraStar pitch.
-pub const PITCH_MAX: Pitch = 67;
+pub use usdx_domain::{
+    clamp_pitch, hz_to_midi, hz_to_pitch, midi_to_hz, pitch_to_midi, PITCH_MAX, PITCH_MIN,
+};
 
 /// Converts an UltraStar beat position into milliseconds.
 ///
@@ -22,28 +21,6 @@ pub fn ms_to_beat(header: &SongHeader, ms: f64) -> f64 {
         return f64::NAN;
     }
     (ms - header.gap_ms as f64) * header.bpm * 4.0 / 60_000.0
-}
-
-/// Converts a frequency in hertz to a fractional MIDI note.
-pub fn hz_to_midi(hz: f64) -> f64 {
-    69.0 + 12.0 * (hz / 440.0).log2()
-}
-
-/// Converts a frequency in hertz to the integer UltraStar pitch.
-///
-/// UltraStar pitch 0 is MIDI 60 (C4).
-pub fn hz_to_pitch(hz: f64) -> Pitch {
-    hz_to_midi(hz).round() as Pitch - 60
-}
-
-/// Converts an UltraStar pitch to its MIDI note number.
-pub fn pitch_to_midi(pitch: Pitch) -> Pitch {
-    pitch + 60
-}
-
-/// Converts a MIDI note number to its frequency in hertz.
-pub fn midi_to_hz(midi: f64) -> f64 {
-    440.0 * 2.0_f64.powf((midi - 69.0) / 12.0)
 }
 
 #[cfg(test)]

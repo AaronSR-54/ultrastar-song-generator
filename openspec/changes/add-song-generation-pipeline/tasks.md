@@ -58,13 +58,13 @@
 
 ## 7. Análisis de pitch y tempo
 
-- [ ] 7.1 Implementar el pipeline de F0 con `pitch-core`/pYIN a 48 kHz y hop 20 ms, con sonoridad y confianza; verificar con tonos puros de 220, 440 y 880 Hz.
-- [ ] 7.2 Implementar la segmentación en notas con mediana, histéresis, duración mínima y unión de huecos; verificar que un vibrato sintético no se fragmenta y un cambio de semitono sí.
-- [ ] 7.3 Implementar la conversión a pitch UltraStar y el recorte de rango con advertencia; verificar 440 Hz → 9 y los límites.
-- [ ] 7.4 Implementar la estimación de tempo, candidatos mitad/doble, fase y `#GAP`; verificar con clics sintéticos a 80, 100 y 120 BPM.
-- [ ] 7.5 Implementar la cuantización a beats, longitud mínima 1 y resolución de solapes por confianza; verificar con notas solapadas y notas más cortas que un beat.
-- [ ] 7.6 Añadir tests de reproducibilidad: dos ejecuciones con la misma entrada y configuración producen las mismas notas; verificar comparando JSON byte a byte.
-- [ ] 7.7 Documentar parámetros y ajuste manual de BPM/GAP en `docs/pitch-and-tempo.md`; verificar que un usuario puede reproducir el ejemplo del documento con un audio de prueba.
+- [x] 7.1 Implementar el pipeline de F0 con `pitch-core`/pYIN a 48 kHz y hop 20 ms, con sonoridad y confianza; verificar con tonos puros de 220, 440 y 880 Hz.
+- [x] 7.2 Implementar la segmentación en notas con mediana, histéresis, duración mínima y unión de huecos; verificar que un vibrato sintético no se fragmenta y un cambio de semitono sí.
+- [x] 7.3 Implementar la conversión a pitch UltraStar y el recorte de rango con advertencia; verificar 440 Hz → 9 y los límites.
+- [x] 7.4 Implementar la estimación de tempo, candidatos mitad/doble, fase y `#GAP`; verificar con clics sintéticos a 80, 100 y 120 BPM.
+- [x] 7.5 Implementar la cuantización a beats, longitud mínima 1 y resolución de solapes por confianza; verificar con notas solapadas y notas más cortas que un beat.
+- [x] 7.6 Añadir tests de reproducibilidad: dos ejecuciones con la misma entrada y configuración producen las mismas notas; verificar comparando JSON byte a byte.
+- [x] 7.7 Documentar parámetros y ajuste manual de BPM/GAP en `docs/pitch-and-tempo.md`; verificar que un usuario puede reproducir el ejemplo del documento con un audio de prueba.
 
 ## 8. Transcripción de letra
 

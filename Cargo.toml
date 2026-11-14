@@ -15,6 +15,7 @@ fs4 = { version = "1.1", default-features = false, features = ["sync"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 ndarray = "0.15"
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["api-27", "download-binaries", "ndarray", "std", "tracing"] }
+realfft = "3.5"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "webpki-roots"] }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }

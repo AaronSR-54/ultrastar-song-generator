@@ -7,10 +7,15 @@ rust-version.workspace = true
 
 [dependencies]
 usdx-domain = { path = "../domain" }
+usdx-format = { path = "../usdx" }
 usdx-ports = { path = "../ports" }
 charon-audio = "0.1.2"
 ndarray.workspace = true
 ort.workspace = true
+pitch-core = "0.1.1"
+realfft.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
