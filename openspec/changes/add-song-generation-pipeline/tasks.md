@@ -21,12 +21,12 @@
 
 ## 3. Proyecto, persistencia y orquestación
 
-- [ ] 3.1 Implementar `project.json` versionado y la estructura `source/`, `work/`, `work/stems/`, `output/`; verificar creando, cerrando y reabriendo un proyecto de prueba.
-- [ ] 3.2 Implementar escrituras atómicas y autoguardado con debounce; verificar que un corte simulado no deja JSON truncado.
-- [ ] 3.3 Implementar la máquina de estados de etapa y el hash de entradas/configuración; verificar la matriz de invalidación del diseño con tests.
-- [ ] 3.4 Implementar el runner de trabajos con Tokio en hilo aparte, eventos de progreso, cancelación y una sola tarea pesada; verificar con tests de doble ejecución y cancelación.
-- [ ] 3.5 Verificar reanudación: simular fallo en separación, reabrir y comprobar que solo se repite desde esa etapa con un test de integración.
-- [ ] 3.6 Documentar el esquema de proyecto y la política de invalidación en `docs/project-layout.md`; verificar que el documento coincide con un `project.json` real generado.
+- [x] 3.1 Implementar `project.json` versionado y la estructura `source/`, `work/`, `work/stems/`, `output/`; verificar creando, cerrando y reabriendo un proyecto de prueba.
+- [x] 3.2 Implementar escrituras atómicas y autoguardado con debounce; verificar que un corte simulado no deja JSON truncado.
+- [x] 3.3 Implementar la máquina de estados de etapa y el hash de entradas/configuración; verificar la matriz de invalidación del diseño con tests.
+- [x] 3.4 Implementar el runner de trabajos con Tokio en hilo aparte, eventos de progreso, cancelación y una sola tarea pesada; verificar con tests de doble ejecución y cancelación.
+- [x] 3.5 Verificar reanudación: simular fallo en separación, reabrir y comprobar que solo se repite desde esa etapa con un test de integración.
+- [x] 3.6 Documentar el esquema de proyecto y la política de invalidación en `docs/project-layout.md`; verificar que el documento coincide con un `project.json` real generado.
 
 ## 4. Ingesta de medios
 
