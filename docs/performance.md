@@ -93,3 +93,22 @@ STATUS: Search complete: 133 songs found (0 with errors) [SongList]
 - La última nota (`start 266`, `length 4`) termina en `232 + 270 · 60 000 / (449,39 · 4) ≈ 9,24 s`, dentro de la duración del audio.
 
 La comprobación visual y de reproducción con la ventana del juego en una máquina con pantalla y tarjeta de sonido sigue siendo manual; el escaneo, la estructura de carpeta y los tiempos son los que valida esta prueba.
+
+## Builds de release
+
+El workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) compila `usdx-desktop` en release para las tres plataformas, ejecuta `--selftest` y publica el binario como artefacto. Se lanza a mano (`workflow_dispatch`) o al empujar una etiqueta `v*`.
+
+| Plataforma | Runner | Binario | Tiempo | Resultado |
+|---|---|---|---|---|
+| Windows | `windows-latest` | `usdx-desktop.exe` (55 MB) | 18m18s | build + selftest + upload |
+| macOS | `macos-latest` (arm64) | `usdx-desktop` | 6m20s | build + selftest + upload |
+| Linux | `ubuntu-latest` | `usdx-desktop` | 11m35s | build + selftest + upload |
+
+La prueba de humo comprueba en cada sistema:
+
+- detección de `yt-dlp`, `ffmpeg`, `ffprobe` y runtime de JavaScript (puede faltar alguno en el runner; el selftest solo informa);
+- carga y validación del catálogo de modelos embebido;
+- creación, guardado y reapertura de un proyecto temporal;
+- salida final `selftest ok`.
+
+Linux necesita las cabeceras `libasound2-dev` (ALSA para `rodio`) y `libxkbcommon-dev`/`libwayland-dev`/`libgtk-3-dev`; el workflow las instala antes de compilar. En Windows CI hay que crear `target/release/build/{examples,deps}` porque `ort` los espera al enlazar.
