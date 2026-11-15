@@ -63,6 +63,8 @@ impl Default for AlignmentOptions {
 #[derive(Debug, Clone, Copy)]
 struct Scale {
     time_beats: f64,
+    beats_per_second: f64,
+    phrase_gap_beats: f64,
 }
 
 impl Scale {
@@ -70,6 +72,8 @@ impl Scale {
         let beats_per_second = (header.bpm.max(0.0) * 4.0 / 60.0).max(0.001);
         Self {
             time_beats: (options.time_tolerance_s.max(0.05) * beats_per_second).max(0.5),
+            beats_per_second,
+            phrase_gap_beats: (options.phrase_gap_s.max(0.3) * beats_per_second).max(1.0),
         }
     }
 }
@@ -296,11 +300,48 @@ pub fn align_with_voiced(
             .copied()
             .find(|value| value.is_finite());
 
-        let begin = cursor;
-        let mut end = cursor;
+        let slack_beats = (0.75 * context.scale.beats_per_second).max(4.0);
+        let mut begin = cursor;
+        while begin + 1 < song.notes.len() {
+            if let Some(next_start) = next_start {
+                if (song.notes[begin + 1].start_beat as f64) >= next_start {
+                    break;
+                }
+            }
+            let note_end = (song.notes[begin].start_beat + song.notes[begin].length_beats) as f64;
+            if note_end < line_start - slack_beats {
+                stats.dropped_notes += 1;
+                begin += 1;
+            } else {
+                break;
+            }
+        }
+
+        let mut end = begin;
+        let max_span_beats = (2.0 + line_anchors.len() as f64 * 0.45).clamp(3.5, 9.5)
+            * context.scale.beats_per_second;
         while end < song.notes.len() {
             if let Some(next_start) = next_start {
                 if (song.notes[end].start_beat as f64) >= next_start {
+                    break;
+                }
+            }
+            if !transcript.word_timed && end > begin {
+                let first_start = (song.notes[begin].start_beat as f64).max(line_start);
+                let current_start = song.notes[end].start_beat as f64;
+                let prev_end =
+                    (song.notes[end - 1].start_beat + song.notes[end - 1].length_beats) as f64;
+                let gap = current_start - prev_end;
+                let collected = end - begin;
+                if current_start > first_start + max_span_beats
+                    && collected >= line_anchors.len().min(3)
+                {
+                    break;
+                }
+                if (gap > context.scale.phrase_gap_beats && collected >= line_anchors.len())
+                    || (gap > 1.5 * context.scale.beats_per_second
+                        && collected >= (line_anchors.len() / 2).max(1))
+                {
                     break;
                 }
             }
@@ -326,8 +367,16 @@ pub fn align_with_voiced(
                         .map(|(_, segment_end)| beats(header, *segment_end))
                 })
                 .unwrap_or(f64::INFINITY);
+            let fitted;
+            let active_anchors: &[Anchor] =
+                if !transcript.word_timed && window.len() * 2 >= line_anchors.len() {
+                    fitted = fit_anchors_to_window(line_anchors, &window, cap_beat);
+                    &fitted
+                } else {
+                    line_anchors
+                };
             assign_line(
-                line_anchors,
+                active_anchors,
                 &window,
                 &mut notes,
                 &mut stats,
@@ -542,14 +591,62 @@ fn assign_line(
                 context,
                 span,
             ),
-            LineStep::NoteOnly { note } => push_continuation(&notes[note], output, stats),
+            LineStep::NoteOnly { note } => {
+                push_continuation(&notes[note], anchors[0].line, context, output, stats)
+            }
         }
     }
 }
 
-/// Emits a `~` continuation note, or counts a drop when nothing was sung yet.
+/// Rescales line-synced anchors onto the actual span of the detected notes in
+/// the line's window so trailing interlude silence does not pull the last words
+/// past the sung phrase.
+fn fit_anchors_to_window(
+    anchors: &[Anchor],
+    window: &[QuantizedNote],
+    cap_beat: f64,
+) -> Vec<Anchor> {
+    let Some(first_note) = window.first() else {
+        return anchors.to_vec();
+    };
+    let Some(last_note) = window.last() else {
+        return anchors.to_vec();
+    };
+    let win_start = first_note.start_beat as f64;
+    let win_end = ((last_note.start_beat + last_note.length_beats) as f64)
+        .min(cap_beat)
+        .max(win_start + 1.0);
+    let orig_start = anchors.first().map(|a| a.start_beat).unwrap_or(win_start);
+    let orig_end = anchors
+        .last()
+        .map(|a| a.end_beat)
+        .unwrap_or(win_end)
+        .max(orig_start + 0.25);
+    let orig_span = (orig_end - orig_start).max(0.25);
+    let win_span = (win_end - win_start).max(0.25);
+
+    anchors
+        .iter()
+        .map(|anchor| {
+            let rel_start = ((anchor.start_beat - orig_start) / orig_span).clamp(0.0, 1.0);
+            let rel_end = ((anchor.end_beat - orig_start) / orig_span).clamp(rel_start, 1.0);
+            let start_beat = win_start + rel_start * win_span;
+            let end_beat = (win_start + rel_end * win_span).max(start_beat + 0.25);
+            Anchor {
+                start_beat,
+                end_beat,
+                ..anchor.clone()
+            }
+        })
+        .collect()
+}
+
+/// Emits a `~` continuation note, or counts a drop when nothing was sung yet
+/// or when a silence separates the note from the syllable it would continue.
 fn push_continuation(
     note_data: &QuantizedNote,
+    current_line: usize,
+    context: AlignContext,
     output: &mut Vec<AlignedNote>,
     stats: &mut AlignmentStats,
 ) {
@@ -557,6 +654,12 @@ fn push_continuation(
         stats.dropped_notes += 1;
         return;
     };
+    let previous_end = (previous.start_beat + previous.length_beats) as f64;
+    let gap = note_data.start_beat as f64 - previous_end;
+    if previous.line != current_line || gap > context.scale.phrase_gap_beats * 0.6 {
+        stats.dropped_notes += 1;
+        return;
+    }
     let confidence = (previous.confidence * 0.9).clamp(0.0, 1.0);
     let line = previous.line;
     output.push(AlignedNote {
@@ -609,19 +712,24 @@ fn push_syllable_note(
     let count = group.count;
     let syllables = &group.anchors[group.start..group.start + count];
     let detected_end = note_data.start_beat + note_data.length_beats.max(1);
-    // Line-synced lyrics know roughly where the group ends; using that avoids
-    // cramming a whole word into a single short detected note. Never grow past
-    // the next note or the end of the sung segment.
-    let desired_end = syllables
-        .last()
-        .map(|anchor| anchor.end_beat.ceil())
-        .unwrap_or(detected_end as f64);
-    let limit = (span.limit_beat as f64)
-        .min(span.cap_beat)
-        .min(desired_end)
-        .max(detected_end as f64);
-    let total = ((limit - note_data.start_beat as f64).floor() as u32)
-        .max(note_data.length_beats.max(count as u32));
+    let total = if count > 1 {
+        // Line-synced lyrics know roughly where the group ends; using that avoids
+        // cramming a whole word into a single short detected note. Never grow past
+        // the next note or the end of the sung segment.
+        let desired_end = syllables
+            .last()
+            .map(|anchor| anchor.end_beat.ceil())
+            .unwrap_or(detected_end as f64);
+        let limit = (span.limit_beat as f64)
+            .min(span.cap_beat)
+            .min(desired_end)
+            .max(detected_end as f64);
+        ((limit - note_data.start_beat as f64).floor() as u32)
+            .max(note_data.length_beats.max(count as u32))
+    } else {
+        let max_len = span.limit_beat.saturating_sub(note_data.start_beat).max(1);
+        note_data.length_beats.max(1).min(max_len)
+    };
     let mut consumed = 0_u32;
     let mut flagged = 0_usize;
 
@@ -680,7 +788,7 @@ fn force_assign_line(
         let notes_left = notes.len() - index;
         let remaining = anchors.len() - assigned;
         if remaining == 0 {
-            push_continuation(note_data, output, stats);
+            push_continuation(note_data, anchors[0].line, context, output, stats);
             continue;
         }
         let count = remaining.div_ceil(notes_left).max(1);
@@ -800,30 +908,61 @@ fn plan(anchors: &[Anchor], notes: &[QuantizedNote], context: AlignContext) -> V
                 );
             }
 
-            relax(
-                &mut cost,
-                &mut from,
-                syllable_index * width + note_index + 1,
-                current + options.skip_note_cost,
-                LineStep::NoteOnly { note: note_index },
-            );
+            let rem_syllables = syllable_count - syllable_index;
+            let rem_notes = note_count - note_index;
+            let rem_notes_after = note_count - (note_index + 1);
+            if syllable_index > 0 && rem_notes > rem_syllables {
+                relax(
+                    &mut cost,
+                    &mut from,
+                    syllable_index * width + note_index + 1,
+                    current + options.skip_note_cost,
+                    LineStep::NoteOnly { note: note_index },
+                );
+            }
 
             let max_group = options
                 .max_grouped
                 .max(2)
                 .min(syllable_count - syllable_index);
             for count in 2..=max_group {
+                // Never consume so many syllables on this note that the
+                // remaining notes in the line are starved of syllables, unless
+                // this note is long enough to genuinely hold multiple syllables
+                // on the same pitch.
+                let starves_later_notes = rem_syllables.saturating_sub(count) < rem_notes_after;
+                let long_enough_for_split = notes[note_index].length_beats >= count as u32 * 4;
+                if starves_later_notes && !long_enough_for_split {
+                    continue;
+                }
                 let group = &anchors[syllable_index..syllable_index + count];
+                let note = &notes[note_index];
+                let span_beats = note.length_beats.max(count as u32) as f64;
+                let group_match: f64 = group
+                    .iter()
+                    .enumerate()
+                    .map(|(offset, anchor)| {
+                        let slice_start =
+                            note.start_beat as f64 + (offset as f64 / count as f64) * span_beats;
+                        let slice_note = QuantizedNote {
+                            start_beat: slice_start.round() as u32,
+                            length_beats: (span_beats / count as f64).round().max(1.0) as u32,
+                            ..*note
+                        };
+                        match_cost(anchor, &slice_note, note_index, notes, context.scale)
+                    })
+                    .sum::<f64>()
+                    / count as f64;
+                let surplus_penalty = if starves_later_notes {
+                    0.8 * (count - 1) as f64
+                } else {
+                    0.0
+                };
                 let next = current
                     + options.group_cost
                     + options.group_syllable_cost * (count - 1) as f64
-                    + match_cost(
-                        &group[0],
-                        &notes[note_index],
-                        note_index,
-                        notes,
-                        context.scale,
-                    );
+                    + surplus_penalty
+                    + group_match;
                 relax(
                     &mut cost,
                     &mut from,
@@ -929,13 +1068,15 @@ fn build_phrases(
 
     for note in notes {
         let line_changed = note.line != current_line;
-        let long_pause = current
-            .last()
-            .map(|previous| {
-                let previous_end = (previous.start_beat + previous.length_beats) as f64;
-                note.start_beat as f64 - previous_end > gap_beats
-            })
-            .unwrap_or(false);
+        let long_pause = note.starts_word
+            && !note.is_continuation
+            && current
+                .last()
+                .map(|previous| {
+                    let previous_end = (previous.start_beat + previous.length_beats) as f64;
+                    note.start_beat as f64 - previous_end > gap_beats
+                })
+                .unwrap_or(false);
 
         if !current.is_empty() && (line_changed || long_pause) {
             phrases.push(finish_phrase(std::mem::take(&mut current)));

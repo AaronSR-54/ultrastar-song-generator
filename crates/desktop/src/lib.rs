@@ -1,28 +1,30 @@
-//! Desktop editor: project view, waveform, piano roll and export.
+//! Desktop app: one-step pipeline, synced preview and export.
 
 pub mod app;
 pub mod editor;
+pub mod icons;
+pub mod native_bar;
 pub mod playback;
 pub mod settings;
 pub mod setup;
 pub mod theme;
-pub mod waveform;
 
 pub use app::App;
 pub use editor::{
     EditorError, EditorState, ExportCheck, NoteSelection, AUTOSAVE_DELAY, UNDO_LIMIT,
 };
 pub use playback::{AudioEngine, LoopRange, PlaybackClock, PlaybackError, Stem};
-pub use settings::GuiSettings;
+pub use settings::{GuiSettings, WindowBar};
 pub use setup::FinishedSong;
-pub use waveform::{Peak, PeakPyramid};
 
 /// Starts the eframe application.
 pub fn run() -> eframe::Result<()> {
+    let settings = GuiSettings::load();
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size([1280.0, 800.0])
-            .with_min_inner_size([960.0, 600.0])
+            .with_inner_size([1040.0, 700.0])
+            .with_min_inner_size([860.0, 640.0])
+            .with_decorations(settings.window_bar.is_native())
             .with_title("UltraStar Song Generator"),
         ..Default::default()
     };

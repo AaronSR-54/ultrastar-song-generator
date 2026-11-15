@@ -339,7 +339,11 @@ impl Pipeline {
             .await
             .map_err(|error| PipelineError::stage(stage, error))?;
         if let Some(video) = &video {
-            std::fs::copy(video, paths.video())?;
+            // yt-dlp already writes `source/video.<ext>`; copying a file onto
+            // itself fails on Windows.
+            if video != &paths.video() {
+                std::fs::copy(video, paths.video())?;
+            }
         }
 
         if let Some(url) = &metadata.thumbnail_url {
@@ -576,14 +580,20 @@ impl Pipeline {
             &folder.join(EXPORTED_AUDIO),
         )?;
         copy_if_present(&paths.cover(), &folder.join(EXPORTED_COVER))?;
-        copy_if_present(&paths.video(), &folder.join(EXPORTED_VIDEO))?;
+        let has_video = copy_if_present(&paths.video(), &folder.join(EXPORTED_VIDEO))?;
+
+        // The folder is the truth: UltraStar only gets a `#VIDEO` line when the
+        // file is really next to the song. A stale tag is dropped instead of
+        // leaving the game looking for a video that is not there.
+        let mut document = document.clone();
+        document.header.video = has_video.then(|| EXPORTED_VIDEO.to_string());
 
         let song_file = folder.join(format!(
             "{} - {}.txt",
             sanitize_filename(&document.header.artist),
             sanitize_filename(&document.header.title)
         ));
-        usdx_format::write_file(&song_file, document).map_err(|error| PipelineError::Stage {
+        usdx_format::write_file(&song_file, &document).map_err(|error| PipelineError::Stage {
             stage: StageId::Export,
             message: error.to_string(),
         })?;
@@ -616,10 +626,9 @@ fn base_header(project: &Project) -> SongHeader {
         audio: HEADER_AUDIO.into(),
         language: project.settings.language.clone(),
         cover: Some(EXPORTED_COVER.into()),
-        video: project
-            .settings
-            .download_video
-            .then(|| EXPORTED_VIDEO.to_string()),
+        // The export stage writes `#VIDEO` only when the file was downloaded
+        // and copied, so this stays empty here.
+        video: None,
         ..SongHeader::default()
     }
 }
@@ -831,6 +840,28 @@ mod tests {
             }
             other => panic!("unexpected error: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn export_writes_the_video_tag_only_when_the_video_exists() {
+        let directory = tempfile::tempdir().unwrap();
+        let pipeline = pipeline(directory.path());
+        let document = document();
+
+        // Without a downloaded video, no stale `#VIDEO` survives.
+        let mut stale = document.clone();
+        stale.header.video = Some(EXPORTED_VIDEO.into());
+        let outcome = pipeline.export_document(&stale).unwrap();
+        assert!(!outcome.folder.join(EXPORTED_VIDEO).exists());
+        let written = std::fs::read_to_string(&outcome.song_file).unwrap();
+        assert!(!written.contains("#VIDEO"));
+
+        // With one, the file is copied and the header points at it.
+        std::fs::write(pipeline.paths().video(), b"fake video").unwrap();
+        let outcome = pipeline.export_document(&document).unwrap();
+        assert!(outcome.folder.join(EXPORTED_VIDEO).exists());
+        let written = std::fs::read_to_string(&outcome.song_file).unwrap();
+        assert!(written.contains("#VIDEO:video.mp4"));
     }
 
     #[tokio::test]

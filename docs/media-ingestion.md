@@ -1,6 +1,6 @@
 # Ingesta de medios
 
-Convierte una URL en los medios locales de un proyecto: metadatos, audio, carátula y vídeo opcional.
+Convierte una URL en los medios locales de un proyecto: metadatos, audio, carátula y vídeo.
 
 ## Herramientas
 
@@ -36,9 +36,16 @@ cargo run -p usdx-media --example toolchain
 3. **WAV de análisis**: `ffmpeg -i audio-source.mp3 -vn -ac 1 -ar 48000 -c:a pcm_s16le work/audio-48k-mono.wav`.
    - Se verifica que sea mono, 48 kHz y que la duración no difiera más de 250 ms del original.
 4. **Carátula**: se descarga la miniatura, se recorta al centro en cuadrado y se guarda como `source/cover.jpg` a 800×800. Se puede sustituir por una imagen local; se valida y se vuelve a recortar.
-5. **Vídeo opcional**: `yt-dlp -f "bv*+ba/b" --merge-output-format mp4 -o source/video.%(ext)s URL`.
-   - Si está desactivado, no se descarga.
-   - Si falla o no hay formato de vídeo, se registra un aviso y el proyecto continúa sin vídeo.
+5. **Vídeo**: `yt-dlp -f "bv*[height<=1080][vcodec^=avc1]/bv*[height<=1080]/..." --merge-output-format mp4
+   --remux-video mp4 -o source/video.%(ext)s URL`.
+   - La app lo descarga para cada canción nueva, porque UltraStar lo muestra durante el juego.
+   - Se pide **solo vídeo, sin pista de audio**: la partida usa `audio.mp3`, y así no se descargan
+     megabytes que nadie va a oír.
+   - Se prefiere **H.264 hasta 1080p**, el códec que mejor digieren los reproductores de UltraStar;
+     si el sitio no lo ofrece, se acepta otra variante y se remuxe a `.mp4`.
+   - El resultado queda como `source/video.mp4` en el proyecto.
+   - Si falla o no hay formato de vídeo, se registra un aviso y el proyecto continúa sin vídeo. En
+     **Canción lista** aparece **Añadir vídeo**, que lo descarga después y vuelve a exportar.
 6. **Nombres**: los títulos se sanean para Windows/macOS/Linux (caracteres reservados, nombres `CON`, `NUL`, etc.) y se evitan colisiones con sufijos ` (2)`, ` (3)`.
 
 ## Timeouts, cancelación y limpieza
@@ -62,7 +69,7 @@ Resultado:
 - Título: `Me at the zoo`, artista `jawed`, duración 19 000 ms.
 - `audio-source.mp3`: 331 052 bytes.
 - `cover.jpg`: 116 901 bytes, 800×800.
-- `video.mp4`: 475 973 bytes.
+- `video.mp4`: 433 081 bytes, solo vídeo H.264 320×240, 18,9 s (sin pista de audio).
 - Sonda del audio original: 19 006 ms, 48 kHz, 2 canales.
 - Sonda del WAV de análisis: 19 006 ms, 48 kHz, 1 canal.
 

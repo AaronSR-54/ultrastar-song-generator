@@ -81,6 +81,8 @@ Este ejemplo se parsea en el test `documented_example.rs`; si cambias el bloque,
 - Se escribe UTF-8 sin BOM y con saltos de línea LF.
 - Al leer se aceptan BOM, CRLF/LF y texto no UTF-8 (se convierte con reemplazo y se avisa).
 - Los nombres de archivo de `#MP3`, `#COVER` y `#VIDEO` son relativos a la carpeta de la canción.
+- Al exportar, `#VIDEO` solo se escribe si `video.mp4` está realmente en la carpeta; una etiqueta
+  huérfana se elimina.
 - Se aceptan etiquetas en mayúsculas o minúsculas.
 
 ## Duetos

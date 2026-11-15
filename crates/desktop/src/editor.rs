@@ -276,25 +276,93 @@ impl EditorState {
         })
     }
 
+    /// Removes the selected note. When the note opened a word, the syllable that
+    /// takes its place inherits the word opening, so the printed lyrics keep
+    /// their space; deleting the last note of a phrase removes the phrase.
     pub fn delete_selected(&mut self, now: Instant) -> Result<(), EditorError> {
         let Some(selection) = self.selection else {
             return Ok(());
         };
-        self.snapshot();
-        let phrase = &mut self.document.phrases[selection.phrase];
-        if selection.note >= phrase.notes.len() {
-            return Err(EditorError::NoteOutOfRange {
+        let removed = self
+            .document
+            .phrases
+            .get(selection.phrase)
+            .ok_or(EditorError::PhraseOutOfRange(selection.phrase))?
+            .notes
+            .get(selection.note)
+            .ok_or(EditorError::NoteOutOfRange {
                 phrase: selection.phrase,
                 note: selection.note,
-            });
-        }
-        phrase.notes.remove(selection.note);
-        if phrase.notes.is_empty() {
+            })?
+            .clone();
+
+        self.snapshot();
+        let emptied = {
+            let phrase = &mut self.document.phrases[selection.phrase];
+            phrase.notes.remove(selection.note);
+            if removed.starts_word {
+                if let Some(next) = phrase.notes.get_mut(selection.note) {
+                    if !next.is_continuation() {
+                        next.starts_word = true;
+                    }
+                }
+            }
+            phrase.notes.is_empty()
+        };
+        if emptied {
             self.document.phrases.remove(selection.phrase);
+        }
+
+        // Keep the cursor where the note was, so deleting a run is one key press
+        // each instead of jumping back to the start of the song.
+        if emptied {
+            self.selection = self
+                .document
+                .phrases
+                .get(selection.phrase)
+                .map(|_| NoteSelection {
+                    phrase: selection.phrase,
+                    note: 0,
+                })
+                .or_else(|| {
+                    let phrase = self.document.phrases.len().checked_sub(1)?;
+                    let note = self.document.phrases[phrase].notes.len().checked_sub(1)?;
+                    Some(NoteSelection { phrase, note })
+                });
+        } else if let Some(phrase) = self.document.phrases.get(selection.phrase) {
+            let last = phrase.notes.len().saturating_sub(1);
+            self.selection = Some(NoteSelection {
+                phrase: selection.phrase,
+                note: selection.note.min(last),
+            });
         }
         self.sanitize_selection();
         self.touched(now);
         Ok(())
+    }
+
+    /// Applies a note type to the selection, or returns it to normal when it
+    /// already has that type. Freestyle and rap keep the syllable text.
+    pub fn toggle_kind(&mut self, kind: NoteKind, now: Instant) -> Result<NoteKind, EditorError> {
+        let Some(selection) = self.selection else {
+            return Err(EditorError::NoSelection);
+        };
+        let current = self
+            .selected_note()
+            .ok_or(EditorError::NoteOutOfRange {
+                phrase: selection.phrase,
+                note: selection.note,
+            })?
+            .kind;
+        let next = if current == kind {
+            NoteKind::Normal
+        } else {
+            kind
+        };
+        self.snapshot();
+        self.document.phrases[selection.phrase].notes[selection.note].kind = next;
+        self.touched(now);
+        Ok(next)
     }
 
     /// Moves a note horizontally, clamped so it never invades its neighbours.
@@ -654,6 +722,92 @@ mod tests {
         state.delete_selected(Instant::now()).unwrap();
         assert_eq!(state.document().phrases.len(), 1);
         assert_eq!(state.document().note_count(), 2);
+    }
+
+    #[test]
+    fn deleting_a_word_opening_hands_the_word_to_the_next_syllable() {
+        let mut state = EditorState::new(SongDoc {
+            header: SongHeader::default(),
+            phrases: vec![Phrase {
+                notes: vec![
+                    Note {
+                        text: "can".into(),
+                        starts_word: true,
+                        ..note(0, 2, 0, "can")
+                    },
+                    Note {
+                        text: "ción".into(),
+                        starts_word: false,
+                        ..note(2, 2, 2, "ción")
+                    },
+                    Note {
+                        text: "ya".into(),
+                        starts_word: true,
+                        ..note(4, 2, 0, "ya")
+                    },
+                ],
+                break_after: None,
+            }],
+            has_end_marker: true,
+            ..SongDoc::default()
+        });
+
+        state.select(0, 0).unwrap();
+        state.delete_selected(Instant::now()).unwrap();
+
+        let phrase = &state.document().phrases[0];
+        assert_eq!(phrase.notes.len(), 2);
+        // "ción" now opens the word, so the writer still emits its leading space.
+        assert!(phrase.notes[0].starts_word);
+        assert_eq!(phrase.notes[0].text, "ción");
+        assert!(phrase.notes[1].starts_word);
+    }
+
+    #[test]
+    fn deleting_keeps_the_cursor_next_to_the_gap() {
+        let mut state = editor();
+        state.select(0, 0).unwrap();
+        state.delete_selected(Instant::now()).unwrap();
+        assert_eq!(
+            state.selection(),
+            Some(NoteSelection { phrase: 0, note: 0 })
+        );
+        assert_eq!(state.document().phrases[0].notes[0].text, "la");
+
+        // Deleting the only note of the second phrase lands on the last note
+        // that is left, which is the survivor of the first delete.
+        state.select(1, 0).unwrap();
+        state.delete_selected(Instant::now()).unwrap();
+        assert_eq!(
+            state.selection(),
+            Some(NoteSelection { phrase: 0, note: 0 })
+        );
+        assert_eq!(state.document().phrases.len(), 1);
+    }
+
+    #[test]
+    fn kind_toggles_return_to_normal() {
+        let mut state = editor();
+        state.select(0, 0).unwrap();
+        assert_eq!(
+            state
+                .toggle_kind(NoteKind::Freestyle, Instant::now())
+                .unwrap(),
+            NoteKind::Freestyle
+        );
+        assert!(!state.selected_note().unwrap().is_continuation());
+        // The text survives: the format does not allow an empty note.
+        assert_eq!(state.selected_note().unwrap().text, "ho");
+        assert_eq!(
+            state
+                .toggle_kind(NoteKind::Freestyle, Instant::now())
+                .unwrap(),
+            NoteKind::Normal
+        );
+        assert_eq!(
+            state.toggle_kind(NoteKind::Rap, Instant::now()).unwrap(),
+            NoteKind::Rap
+        );
     }
 
     #[test]

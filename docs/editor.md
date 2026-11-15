@@ -1,144 +1,156 @@
-# Editor de revisión
+# Vista previa y edición
 
-La app de escritorio (`crates/desktop`) abre proyectos, ejecuta las etapas del pipeline y permite revisar y corregir la canción generada antes de exportarla.
-
-## Arranque
+Al terminar el pipeline, la app muestra **Canción lista**. Desde ahí, **Vista previa** abre la
+comprobación de la canción: se reproduce, se navega por la letra silabeada y se corrigen las notas
+antes de exportar.
 
 ```bash
 cargo run -p usdx-desktop
 ```
 
-La app solo necesita un enlace de YouTube. Detecta las herramientas externas y los modelos por sí sola:
+## Frase actual
 
-| Ajuste | Origen | Ejemplo |
-|---|---|---|
-| `yt-dlp` | `PATH` | 2025.09.26 o superior |
-| `ffmpeg` / `ffprobe` | `PATH` | 6.0 o superior |
-| Runtime JS para `yt-dlp` | `PATH` | Node 22 o Deno |
-| Modelo de separación | `USDX_HTDEMUCS_MODEL` o descarga automática | `%TEMP%\usdx-models\htdemucs.onnx` |
-| Modelo Whisper | `USDX_WHISPER_MODEL`, descarga bajo demanda | `%TEMP%\usdx-models\ggml-large-v3-turbo-q5_0.bin` |
+La franja superior muestra la letra completa de la frase que suena. Cada sílaba es un elemento
+clicable:
 
-Los modelos no se incluyen en el binario: la app descarga HTDemucs la primera vez y Whisper solo si la letra online no está disponible.
+- la sílaba activa se pinta en azul;
+- las continuaciones (`~`) quedan en gris;
+- la sílaba seleccionada lleva un subrayado azul;
+- al pulsar una sílaba, se selecciona y el audio salta a su instante exacto.
 
-## Vista de proyecto y etapas
+Si la posición cae entre frases (introducción o interludio), se muestra la siguiente frase y la
+primera sílaba pendiente queda resaltada.
 
-La ventana tiene tres pantallas: **Inicio** (URL + Procesar), **Procesando** (etapas y progreso) y **Listo** (abrir carpeta o revisar). La app crea el proyecto sola en su carpeta de datos; el engranaje abre **Ajustes**, donde se elige la carpeta de destino. Las seis etapas se muestran con su estado:
+## Editar notas
 
-| Color | Estado | Acciones |
-|---|---|---|
-| gris | `Pending` | Ejecutar |
-| amarillo | `Running` | Cancelar |
-| verde | `Done` | Ejecutar de nuevo (recalcula) |
-| rojo | `Failed` | Reintentar, o Ejecutar |
-| violeta | `Skipped` | Ejecutar |
+La barra de edición, bajo la frase, trabaja sobre la sílaba seleccionada y muestra su texto y su
+tipo. Se puede seleccionar desde la frase o desde el lienzo de notas (clic en un bloque).
 
-- **Procesar** recorre todas las etapas pendientes o fallidas en orden de dependencia y se detiene en el primer error.
-- **Reintentar** continúa desde la etapa que falló; las anteriores no se repiten.
-- **Cancelar** pide la cancelación cooperativa; la etapa vuelve a `Pending`, no a `Failed`.
-- El mensaje de una etapa fallida se guarda en `project.json` y se muestra en la pantalla de error, junto con la acción de reintentar.
+| Acción | Botón | Tecla | Efecto |
+|---|---|---|---|
+| No cantable | **No cantable** | `F` | Escribe `F`: la sílaba se ve pero no puntúa. Se usa para partes habladas o imposibles de afinar |
+| Rap | **Rap** | `R` | Escribe `R`: se canta hablado y puntúa por tiempo |
+| Normal | **Normal** | `N` | Vuelve a `:` |
+| Quitar sílaba | **Borrar** | `Supr` / `Retroceso` | Elimina la nota del `.txt` |
+| Deshacer / rehacer | ↶ / ↷ | `Ctrl+Z` / `Ctrl+Y` | Hasta 100 pasos |
 
-El pipeline escribe artefactos intermedios en `work/` (`transcript.json`, `notes.json`, `song.json`) y la etapa de exportación escribe `output/<Artista> - <Título>/`.
+Detalles que respeta el editor:
 
-## Reproducción
+- **Las palabras conservan sus espacios.** En el formato, la sílaba que abre palabra lleva un
+  espacio delante. Si se borra esa sílaba, la siguiente hereda la marca, así que `can` + `ción` no se
+  pega a la palabra anterior.
+- **Marcar no cambia la letra.** `F` y `R` conservan el texto: una nota sin texto (salvo `~`) impide
+  exportar.
+- **El cursor no salta.** Al borrar, la selección queda en la sílaba que ocupó el hueco, para
+  encadenar borrados.
+- Si una frase se queda sin notas, desaparece del documento.
+- Los cambios se guardan solos **2 segundos** después de la última pulsación, y **Guardar** lo hace
+  al instante. Exportar también guarda.
+- En el lienzo, las notas `F` se dibujan en contorno (no puntúan) y las `R`/doradas llevan una barra
+  ámbar bajo el bloque.
 
-`rodio` reproduce la mezcla (WAV de análisis) o cualquiera de los stems. La barra de transporte ofrece play/pausa, parar, cambio de stem y bucle. El bucle se activa en la posición actual y dura 4 s; volver a pulsar lo desactiva.
+## Ventana de notas silabeadas
 
-- Cambiar de stem conserva la posición y el estado de reproducción.
-- Hacer clic en la waveform hace seek a ese instante; el cursor y el piano-roll se actualizan en el mismo frame.
-- Si no hay dispositivo de audio, el editor funciona igual y muestra el aviso en la barra de estado.
+La ventana sigue la reproducción con una vista de 9 segundos:
 
-## Waveform
+- cada bloque es una nota/sílaba; el ancho representa su duración;
+- la altura representa el pitch, con una rejilla horizontal de referencia;
+- la **frase actual** se ilumina y la **nota activa** se rellena en azul;
+- las frases anteriores quedan atenuadas y las futuras en contorno;
+- las líneas verticales marcan el inicio de cada frase;
+- la regla inferior marca los segundos de la vista;
+- hacer clic en un bloque lo selecciona; arrastrar hace *seek*.
 
-La waveform se dibuja desde una pirámide de picos: nivel 0 guarda un mínimo/máximo cada 256 muestras (5,3 ms a 48 kHz) y cada nivel siguiente cuadruplica el bucket. Una canción de 6 minutos ocupa del orden de 67 000 picos en el nivel 0 y se construye en decenas de milisegundos, así que el zoom y el scroll no bloquean la UI.
+Para que la melodía no quede como una línea fina, el rango de pitch se recorta al percentil 10–90 y
+se limita a 14 semitonos; los valores extremos se fijan al borde.
 
-El control **Zoom** cambia la ventana visible entre 2 y 120 s.
+## Transporte y velocidad
 
-## Piano-roll
-
-El piano-roll muestra:
-
-- notas normales en verde, la seleccionada en naranja y las dudosas (`confidence < 0.55`) en rojo;
-- continuaciones `~` como rectángulos huecos;
-- cortes de frase como líneas verticales violetas al final de cada frase;
-- la rejilla de beats (línea fuerte cada 4) y el cursor de reproducción.
-
-Los cortes de frase (`- inicio fin`) vienen de la alineación: cambio de línea de la transcripción o silencio superior a 0.8 s.
-
-## Edición
-
-Selecciona una nota con el ratón (o con las flechas) y usa el inspector:
-
-| Acción | Control |
+| Control | Efecto |
 |---|---|
-| Mover | arrastrar la nota, o `←`/`→` |
-| Redimensionar | botones `+ beat` / `- beat` |
-| Cambiar pitch | `⏶`/`⏷` o `↑`/`↓` |
-| Convertir en continuación | botón `~` |
-| Cambiar texto | campo de texto del inspector |
-| Crear nota | botón `+ nota` (al final de la frase seleccionada) |
-| Borrar nota | botón `Borrar` o `Supr` |
+| Play / pausa | Reproduce o detiene el audio sin perder la posición |
+| Detener | Pausa y vuelve a 0:00 |
+| Al principio | Salta a 0:00 sin cambiar el estado de reproducción |
+| Velocidad | `0,5×`, `0,75×`, `1×` o `1,25×` |
 
-Restricciones que aplica el estado del editor (y verifican los tests):
+El reloj avanza a la velocidad elegida y la barra de reproducción se actualiza en el mismo frame.
+`rodio` cambia la velocidad remuestreando: al ralentizar, el tono baja en la misma proporción. Si no
+hay dispositivo de audio, el reloj sigue funcionando en silencio y la vista previa es igualmente
+navegable.
 
-- Mover una nota la recorta al hueco entre la nota anterior y la siguiente; nunca invade a sus vecinas.
-- Redimensionar respeta una longitud mínima de 1 beat y el inicio de la siguiente nota.
-- Crear una nota en un hueco ocupado devuelve error y no modifica el documento.
-- Borrar la última nota de una frase elimina la frase.
-- El pitch se recorta al rango `PITCH_MIN..=PITCH_MAX` de UltraStar.
-
-## Tempo y offset
-
-La fila superior del editor expone `#BPM` (1–2000) y `#GAP` (−600 000 a 600 000 ms). Un valor inválido (0, negativo, NaN o fuera de rango) no se aplica y el documento conserva el anterior. Cambiar BPM o GAP solo mueve la rejilla y las notas en la vista previa: el audio no cambia de posición.
-
-Si el proyecto tiene candidatos de tempo (`work/notes.json`), aparecen como botones «BPM / GAP». Al pulsar uno se aplican los dos valores a la vez, lo que permite comparar mitad/doble sin editar números a mano.
-
-## Deshacer, autoguardado y cierre
-
-- Cada edición guarda un snapshot del `SongDoc`. El historial conserva las últimas 100 operaciones (`UNDO_LIMIT`).
-- Deshacer y rehacer restauran beats, longitud, pitch, texto y tipo exactos; rehacer aplica el cambio una sola vez.
-- El documento se marca como sucio al editar y se autoguarda 2 s después de la última edición (`AUTOSAVE_DELAY`) en `work/song.json`.
-- Al intentar cerrar con cambios pendientes aparece un diálogo con **Guardar y cerrar**, **Descartar** y **Cancelar**. Con el documento limpio la ventana se cierra directamente.
-
-## Exportación
-
-El botón **Exportar** valida el documento con el validador de `usdx-format`:
-
-- si hay un error, el editor selecciona la frase y la nota culpables, muestra el motivo y no escribe nada (por ejemplo, una nota con texto vacío);
-- si solo hay avisos, exporta y los muestra en la barra de estado;
-- si todo es válido, crea `output/<Artista> - <Título>/` con el `.txt`, `audio.mp3`, `cover.jpg` y, si existe, `video.mp4`.
-
-## Atajos
+### Atajos
 
 | Tecla | Acción |
 |---|---|
 | `Espacio` | Play / pausa |
-| `Shift+←` / `Shift+→` | Retroceder / avanzar 2 s |
-| `←` / `→` | Nota anterior / siguiente |
-| `↑` / `↓` | Subir / bajar un semitono |
-| `Supr` | Borrar la nota seleccionada |
-| `Ctrl+Z` | Deshacer |
-| `Ctrl+Y` | Rehacer |
+| `←` / `→` | Retroceder / avanzar 5 s |
+| `Inicio` | Volver al principio |
+| `F` / `R` / `N` | No cantable / rap / normal |
+| `Supr` | Quitar la sílaba seleccionada |
+| `Ctrl+Z` / `Ctrl+Y` | Deshacer / rehacer |
+| `Esc` | Volver a la pantalla anterior |
 
 Los atajos se ignoran mientras un campo de texto tiene el foco.
 
-## Checklist manual de revisión
+## Barra de ventana
 
-1. Crear un proyecto con una URL y pulsar **Procesar todo**.
-2. Comprobar que las seis etapas acaban en verde y que `output/` contiene `.txt`, audio y carátula.
-3. Reproducir la canción: play/pausa, clic en la waveform y bucle de 4 s.
-4. Cambiar entre mezcla, voz e instrumental: la posición no cambia.
-5. Seleccionar una nota dudosa (roja), corregir el texto y comprobar que el resaltado desaparece tras regenerar o editar.
-6. Arrastrar una nota contra la anterior y verificar que se detiene en el borde.
-7. Cambiar `#BPM` a 0: el valor no se aplica y aparece el rango válido.
-8. Deshacer y rehacer un movimiento: la nota vuelve y se reaplica exactamente una vez.
-9. Editar, esperar 2 s y comprobar que `work/song.json` cambia sin pulsar Guardar.
-10. Borrar el texto de una nota y pulsar **Exportar**: se selecciona esa nota y se muestra el motivo.
-11. Corregir el texto y exportar: el `.txt` se escribe y la ruta aparece en la barra de estado.
-12. Con cambios pendientes, cerrar la ventana: aparece el diálogo de guardar/descartar/cancelar.
+**Ajustes → Barra de ventana** ofrece tres presentaciones:
+
+- **Sistema:** barra nativa. En Windows 11 se tiñe con la paleta de la app usando DWM (fondo,
+  texto y borde); en el resto de sistemas se respeta el aspecto del sistema.
+- **Integrada:** barra de 38 px dibujada por la app: marca y controles de minimizar, maximizar y
+  cerrar. Se arrastra desde cualquier punto libre y el doble clic maximiza.
+- **Mínima:** barra de 28 px con la marca abreviada y los mismos controles.
+
+La preferencia se guarda en `settings.json` y se aplica en el siguiente arranque; el cambio de modo
+también se aplica en caliente sin reiniciar.
+
+## Exportación
+
+**Exportar** valida el documento con `usdx-format` y vuelve a escribir la carpeta:
+
+- si hay un error (por ejemplo, una nota sin texto), no escribe nada y lo explica;
+- si solo hay avisos, exporta y los muestra;
+- si todo es válido, genera `output/<Artista> - <Título>/` con el `.txt`, el audio, la carátula y el
+  vídeo si el proyecto lo tiene.
+
+El `.txt` solo lleva `#VIDEO:video.mp4` cuando ese archivo está realmente en la carpeta. Así UltraStar
+nunca busca un vídeo ausente: o está y se reproduce, o no hay etiqueta.
+
+### Añadir vídeo a una canción ya procesada
+
+Las canciones creadas antes de que el vídeo fuera parte del proceso no lo tienen. En **Canción lista**
+aparece **Añadir vídeo** cuando falta:
+
+1. descarga el vídeo del enlace original en segundo plano (se puede cancelar);
+2. lo guarda en `source/video.mp4`;
+3. vuelve a exportar y copia la carpeta al destino, ya con `#VIDEO:video.mp4`.
+
+Si la descarga falla, la canción sigue lista sin vídeo y se puede reintentar.
 
 ## Límites conocidos
 
 - Una sola voz; duetos y multipista quedan fuera del MVP.
-- El tempo es constante: no hay mapa de tempo, así que si el BPM estimado deriva, la rejilla se desvía hacia el final.
-- La reproducción decodifica el archivo al cambiar de stem; en canciones muy largas el cambio puede tardar un instante.
-- La silabificación inglesa es ortográfica; las sílabas dudosas se corrigen a mano en el inspector.
+- El tempo es constante: no hay mapa de tempo.
+- Se editan el tipo y la presencia de cada nota; mover, redimensionar y afinar existen en el motor
+  (`EditorState`) pero aún no tienen gesto en la interfaz.
+- Cambiar de velocidad altera el pitch porque el motor remuestrea el audio.
+
+## Checklist manual
+
+1. Procesar una canción y abrir **Vista previa**.
+2. Comprobar que la primera sílaba aparece resaltada y que la ventana de notas está centrada en ella.
+3. Pulsar play: la barra avanza, la frase y la sílaba activa cambian.
+4. Cambiar a `0,5×` y comprobar que el reloj avanza a la mitad de velocidad.
+5. Arrastrar la barra de reproducción y verificar que la vista de notas salta al instante.
+6. Pulsar una sílaba de la frase actual: el audio salta a esa sílaba y queda seleccionada.
+7. Pulsar `F`: la sílaba pasa a no cantable y el bloque se dibuja en contorno. `N` la devuelve.
+8. Pulsar `Supr`: desaparece la sílaba; la palabra conserva su espacio y `Ctrl+Z` la recupera.
+9. Esperar 2 segundos y comprobar que el indicador pasa a **Guardado**.
+10. Pulsar **Detener** y comprobar que vuelve a 0:00 y se pausa.
+11. Cambiar la barra de ventana entre **Sistema**, **Integrada** y **Mínima** sin reiniciar.
+12. Pulsar **Exportar** y comprobar que la carpeta de salida se reescribe y que la nota `F` aparece
+    en el `.txt`.
+13. Probar `Espacio`, `←`, `→`, `Inicio` y `Esc`.
+14. Con una canción procesada antes de este cambio, pulsar **Añadir vídeo** en **Canción lista** y
+    comprobar que el `.txt` gana `#VIDEO:video.mp4` y que UltraStar muestra el vídeo.

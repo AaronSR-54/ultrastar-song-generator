@@ -73,16 +73,50 @@ impl DictionarySyllabifier {
             };
         }
 
+        let chars: Vec<char> = word.chars().collect();
+        let Some(first_alpha) = chars.iter().position(|c| c.is_alphabetic()) else {
+            return SyllableSplit {
+                syllables: vec![word.to_string()],
+                known: true,
+            };
+        };
+        let last_alpha = chars
+            .iter()
+            .rposition(|c| c.is_alphabetic())
+            .unwrap_or(first_alpha);
+        let prefix: String = chars[..first_alpha].iter().collect();
+        let core: String = chars[first_alpha..=last_alpha].iter().collect();
+        let suffix: String = chars[last_alpha + 1..].iter().collect();
+
         // Contractions and hyphenated compounds are kept whole: splitting
         // "don't" would create an empty syllable, and UltraStar joins syllables
         // without spaces, so a wrong split would change the lyrics.
-        if word.contains('\'') || word.contains('’') || word.contains('-') {
+        if core.contains('\'') || core.contains('’') || core.contains('-') {
             return SyllableSplit {
                 syllables: vec![word.to_string()],
                 known: true,
             };
         }
 
+        let mut split = self.split_core(language, &core);
+        split.syllables = merge_vowelless(split.syllables);
+        if split.syllables.is_empty() {
+            split.syllables.push(core);
+        }
+        if !prefix.is_empty() {
+            if let Some(first) = split.syllables.first_mut() {
+                *first = format!("{prefix}{first}");
+            }
+        }
+        if !suffix.is_empty() {
+            if let Some(last) = split.syllables.last_mut() {
+                last.push_str(&suffix);
+            }
+        }
+        split
+    }
+
+    fn split_core(&self, language: &str, word: &str) -> SyllableSplit {
         let Some(language) = DictLanguage::from_code(language) else {
             return SyllableSplit {
                 syllables: fallback_split(word),
@@ -186,20 +220,61 @@ fn english_exception(word: &str) -> Option<Vec<String>> {
 
 /// True when the character is one of the Spanish weak vowels.
 fn is_weak(c: char) -> bool {
-    matches!(c, 'i' | 'u' | 'ü')
+    matches!(c.to_lowercase().next().unwrap_or(c), 'i' | 'u' | 'ü')
 }
 
 /// Weak vowels carrying a written accent break the diphthong (`pa-ís`).
 fn is_accented_weak(c: char) -> bool {
-    matches!(c, 'í' | 'ú' | 'ì' | 'ù')
+    matches!(c.to_lowercase().next().unwrap_or(c), 'í' | 'ú' | 'ì' | 'ù')
 }
 
 fn is_strong(c: char) -> bool {
-    matches!(c, 'a' | 'e' | 'o' | 'á' | 'é' | 'ó')
+    matches!(
+        c.to_lowercase().next().unwrap_or(c),
+        'a' | 'e' | 'o' | 'á' | 'é' | 'ó'
+    )
 }
 
 fn is_vowel(c: char) -> bool {
-    is_weak(c) || is_strong(c)
+    is_weak(c) || is_strong(c) || is_accented_weak(c)
+}
+
+fn has_sung_vowel(text: &str) -> bool {
+    text.chars().any(|c| {
+        let lower = c.to_lowercase().next().unwrap_or(c);
+        is_vowel(lower) || lower == 'y'
+    })
+}
+
+/// Attaches consonant-only fragments to a neighbouring syllable so punctuation
+/// or abbreviations never leave a vowelless note on their own.
+fn merge_vowelless(parts: Vec<String>) -> Vec<String> {
+    let mut result: Vec<String> = Vec::with_capacity(parts.len());
+    let mut pending_prefix = String::new();
+    for part in parts {
+        if part.is_empty() {
+            continue;
+        }
+        if has_sung_vowel(&part) {
+            if pending_prefix.is_empty() {
+                result.push(part);
+            } else {
+                result.push(format!("{pending_prefix}{part}"));
+                pending_prefix.clear();
+            }
+        } else if let Some(last) = result.last_mut() {
+            last.push_str(&part);
+        } else {
+            pending_prefix.push_str(&part);
+        }
+    }
+    if !pending_prefix.is_empty() {
+        match result.last_mut() {
+            Some(last) => last.push_str(&pending_prefix),
+            None => result.push(pending_prefix),
+        }
+    }
+    result
 }
 
 /// Whether two adjacent syllables form a diphthong and must be joined.

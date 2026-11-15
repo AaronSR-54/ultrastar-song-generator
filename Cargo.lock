@@ -5911,10 +5911,10 @@ name = "usdx-desktop"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "charon-audio",
  "directories",
  "eframe",
  "egui",
+ "raw-window-handle",
  "rfd",
  "rodio",
  "serde",

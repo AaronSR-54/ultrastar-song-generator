@@ -23,8 +23,9 @@ Cada canción en preparación vive en su propia carpeta. Todo es inspeccionable 
   output/
     <Artist> - <Title>/
       <Artist> - <Title>.txt
-      <Artist> - <Title>.mp3
-      <Artist> - <Title>.jpg
+      audio.mp3
+      cover.jpg
+      video.mp4            # cuando la canción tiene vídeo
 ```
 
 Los nombres de `source/` y `work/` son estables y los define `ProjectPaths`. La carpeta `output/` solo se escribe después de validar y confirmar la exportación.

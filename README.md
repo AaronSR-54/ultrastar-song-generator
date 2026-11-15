@@ -1,6 +1,6 @@
 # UltraStar Song Generator
 
-Aplicación de escritorio que convierte una URL de YouTube en una carpeta de canción jugable en UltraStar Deluxe / USDX: letra silabificada, notas con pitch y duración, audio, carátula y un editor para revisar el resultado antes de exportar.
+Aplicación de escritorio que convierte una URL de YouTube en una carpeta de canción jugable en UltraStar Deluxe / USDX: letra silabificada, notas con pitch y duración, audio, carátula, vídeo y un editor para revisar el resultado antes de exportar.
 
 La letra se busca primero en [LRCLIB](https://lrclib.net) (gratis, sin clave y con sincronización por palabra en muchas canciones). Si no hay una versión utilizable, la app la transcribe en local con whisper.cpp. La separación de voces (HTDemucs ONNX) y el análisis de pitch (pYIN) también corren en local: el audio nunca se sube a ningún servicio. Lo único que sale a la red es el título, el artista y la duración, para buscar la letra.
 
@@ -102,7 +102,7 @@ selftest ok
 
 | Etapa | Qué hace | Salida |
 |---|---|---|
-| Ingest | Metadatos, audio, carátula y WAV mono 48 kHz | `source/`, `work/analysis.wav` |
+| Ingest | Metadatos, audio, carátula, vídeo y WAV mono 48 kHz | `source/`, `work/analysis.wav` |
 | Separate | Separa voz e instrumental | `work/stems/` |
 | Transcribe | Busca la letra en LRCLIB; si no hay, Whisper sobre la voz | `work/transcript.json` |
 | Pitch | F0, tempo y cuantización | `work/notes.json` |
@@ -137,33 +137,42 @@ cargo run -p usdx-application --example pipeline_smoke
 
 El ejemplo codifica el audio a MP3, genera el WAV de análisis, ejecuta las etapas pendientes y termina con los tiempos por etapa y la ruta exportada. Es el mismo pipeline que usa la GUI.
 
-## 3. Revisión en el editor
+## 3. Vista previa
 
-Cuando termina la alineación, el editor carga `work/song.json`.
+Cuando termina la alineación, **Canción lista** ofrece **Vista previa**. Es una vista de solo lectura pensada para comprobar el sincronizado:
 
-- **Waveform:** clic para hacer *seek*. El deslizador **Zoom** cambia la ventana visible (2–120 s).
-- **Piano-roll:** notas en verde, la seleccionada en naranja y las dudosas (`confianza < 0.55`) en rojo. Los `~` son continuaciones (melisma). Las líneas violetas marcan el final de cada frase.
-- **Transporte:** play/pausa, parar, bucle de 4 s y cambio entre mezcla, voz e instrumental sin perder la posición.
-- **Inspector:** mover, redimensionar, cambiar pitch, convertir en `~`, corregir el texto, crear o borrar notas.
+- **Frase actual:** letra completa de la frase, con la sílaba que suena resaltada. Cada sílaba es clicable para saltar a su instante.
+- **Notas silabeadas:** ventana de 9 s que sigue la reproducción. Cada bloque es una sílaba; la frase actual se ilumina, la nota activa se rellena y la regla inferior marca los segundos.
+- **Transporte:** play/pausa, detener, volver al principio y velocidad (`0,5×`, `0,75×`, `1×`, `1,25×`).
+- **Barra de reproducción:** avanza con el audio y permite hacer *seek* arrastrando o haciendo clic.
+- **Exportar:** vuelve a validar, exportar y copiar el documento a la carpeta de destino.
 
 | Tecla | Acción |
 |---|---|
 | `Espacio` | Play / pausa |
-| `Shift+←` / `Shift+→` | ±2 s |
-| `←` / `→` | Nota anterior / siguiente |
-| `↑` / `↓` | ±1 semitono |
-| `Supr` | Borrar nota |
-| `Ctrl+Z` / `Ctrl+Y` | Deshacer / rehacer |
+| `←` / `→` | ±5 s |
+| `Inicio` | Volver al principio |
+| `Esc` | Volver a la pantalla anterior |
 
-BPM y GAP están en la fila superior. Si el análisis generó candidatos de tempo, aparecen como botones «BPM / GAP» para comparar mitad y doble sin escribir números.
+La vista previa no modifica el documento; para corregir notas hay que reprocesar la canción o usar las herramientas de línea de comandos.
 
-Las ediciones se autoguardan 2 s después del último cambio y hay 100 niveles de deshacer. Al cerrar con cambios pendientes aparece el diálogo de guardar/descartar/cancelar.
+### Barra de ventana
+
+En **Ajustes → Barra de ventana** se elige cómo se presenta el marco:
+
+| Modo | Comportamiento |
+|---|---|
+| **Sistema** | Barra nativa del sistema. En Windows 11 se tiñe con la paleta de la app (fondo, texto y borde) mediante DWM. |
+| **Integrada** | Barra dibujada por la app con marca, estado local y controles de ventana; mismo color en todos los sistemas. |
+| **Mínima** | Barra compacta de 28 px con la marca abreviada y los controles. |
+
+En los modos integrados la ventana se puede arrastrar desde la barra y hacer doble clic para maximizar.
 
 El flujo completo y sus límites están en [`docs/editor.md`](docs/editor.md).
 
 ## 4. Exportación
 
-Al terminar el procesamiento la app ya ha exportado la canción y, si hay destino configurado, la ha copiado allí. Desde el editor puedes volver a exportar con **Exportar** después de corregir la letra o las notas. La app valida el documento y:
+Al terminar el procesamiento la app ya ha exportado la canción y, si hay destino configurado, la ha copiado allí. Desde **Vista previa** puedes volver a exportar con **Exportar** (por ejemplo, después de cambiar la carpeta de destino). La app valida el documento y:
 
 - si hay un error (por ejemplo una nota con texto vacío), selecciona la nota culpable, explica el motivo y no escribe nada;
 - si solo hay avisos, exporta y los muestra;
@@ -174,10 +183,11 @@ output/<Artista> - <Título>/
 ├── <Artista> - <Título>.txt
 ├── audio.mp3
 ├── cover.jpg
-└── video.mp4        (solo si activaste la descarga de vídeo)
+└── video.mp4        (descargado por defecto)
 ```
 
-El `.txt` incluye `#TITLE`, `#ARTIST`, `#LANGUAGE`, `#MP3`, `#COVER`, `#BPM`, `#GAP`, las frases con sus notas y el terminador `E`.
+El `.txt` incluye `#TITLE`, `#ARTIST`, `#LANGUAGE`, `#MP3`, `#COVER`, `#VIDEO` cuando el vídeo está
+en la carpeta, `#BPM`, `#GAP`, las frases con sus notas y el terminador `E`.
 
 ## 5. Copiar a UltraStar
 
@@ -206,7 +216,7 @@ Las canciones de referencia con las que se prueba el formato están en [`docs/pe
 | La letra está desincronizada | La app corrige el desfase global cuando LRCLIB trae otra versión. Si aun así no cuadra, ajusta BPM/GAP en el editor |
 | No suena nada | No hay dispositivo de audio: el editor sigue funcionando en silencio |
 | La canción se desincroniza al final | El formato no admite mapa de tempo; ajusta BPM/GAP o divide la canción |
-| La letra sale mal | Corrige el texto en el inspector; la silabificación se recalcula al regenerar |
+| La letra sale mal | Revisa la vista previa; si no cuadra, reprocesa la canción o edita `work/transcript.json` |
 
 ## 7. Desarrollo
 
@@ -227,6 +237,6 @@ Documentación técnica:
 - [`docs/project-layout.md`](docs/project-layout.md) — capas, crates y estructura del proyecto.
 - [`docs/transcription.md`](docs/transcription.md) — letra online, Whisper, idiomas y filtros.
 - [`docs/alignment.md`](docs/alignment.md) — silabificación y alineación.
-- [`docs/editor.md`](docs/editor.md) — editor y atajos.
+- [`docs/editor.md`](docs/editor.md) - vista previa, reproducción y barra de ventana.
 - [`docs/performance.md`](docs/performance.md) — tiempos medidos y aceptación.
 - [`docs/licenses.md`](docs/licenses.md) — auditoría de licencias.

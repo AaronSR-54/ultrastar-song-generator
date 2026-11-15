@@ -57,6 +57,7 @@ pub struct PlaybackClock {
     playing: bool,
     loop_range: Option<LoopRange>,
     stem: Stem,
+    rate: f32,
 }
 
 impl PlaybackClock {
@@ -67,6 +68,7 @@ impl PlaybackClock {
             playing: false,
             loop_range: None,
             stem: Stem::Mix,
+            rate: 1.0,
         }
     }
 
@@ -84,6 +86,17 @@ impl PlaybackClock {
 
     pub fn stem(&self) -> Stem {
         self.stem
+    }
+
+    pub fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    /// Playback rate: 1.0 is normal, values below slow the clock down.
+    pub fn set_rate(&mut self, rate: f32) {
+        if rate.is_finite() && rate > 0.0 {
+            self.rate = rate.clamp(0.25, 2.0);
+        }
     }
 
     pub fn loop_range(&self) -> Option<LoopRange> {
@@ -121,7 +134,7 @@ impl PlaybackClock {
         if !self.playing || elapsed_s <= 0.0 || self.duration_s <= 0.0 {
             return None;
         }
-        self.position_s += elapsed_s;
+        self.position_s += elapsed_s * self.rate as f64;
         if let Some(range) = self.loop_range {
             if self.position_s >= range.end_s {
                 self.position_s = range.start_s;
@@ -230,6 +243,7 @@ impl AudioEngine {
             .unwrap_or_else(|| self.clock.duration_s());
         player.clear();
         player.append(decoder);
+        player.set_speed(self.clock.rate());
         player
             .try_seek(Duration::from_secs_f64(keep))
             .map_err(|error| PlaybackError::Seek(error.to_string()))?;
@@ -290,6 +304,14 @@ impl AudioEngine {
 
     pub fn set_loop(&mut self, range: Option<LoopRange>) {
         self.clock.set_loop(range);
+    }
+
+    /// Changes playback speed. rodio resamples, so pitch follows the rate.
+    pub fn set_rate(&mut self, rate: f32) {
+        self.clock.set_rate(rate);
+        if let Some(player) = &self.player {
+            player.set_speed(self.clock.rate());
+        }
     }
 
     pub fn switch_stem(&mut self, stem: Stem, path: &Path) -> Result<(), PlaybackError> {
@@ -393,5 +415,23 @@ mod tests {
         let mut clock = PlaybackClock::new(20.0);
         clock.set_loop(Some(LoopRange::new(5.0, 5.0)));
         assert!(!clock.is_looping());
+    }
+
+    #[test]
+    fn playback_rate_scales_the_clock() {
+        let mut clock = PlaybackClock::new(60.0);
+        clock.play();
+        clock.set_rate(0.5);
+        assert!((clock.rate() - 0.5).abs() < f32::EPSILON);
+        clock.advance(2.0);
+        assert!((clock.position_s() - 1.0).abs() < 1e-9);
+        clock.set_rate(1.5);
+        clock.advance(2.0);
+        assert!((clock.position_s() - 4.0).abs() < 1e-9);
+        // Out-of-range rates are ignored.
+        clock.set_rate(0.0);
+        assert!((clock.rate() - 1.5).abs() < f32::EPSILON);
+        clock.set_rate(f32::NAN);
+        assert!((clock.rate() - 1.5).abs() < f32::EPSILON);
     }
 }

@@ -9,6 +9,12 @@ use crate::metadata::{parse_yt_dlp_json, MetadataError, VideoMetadata};
 use crate::process::{cleanup_partials, run_checked, std_command, tokio_command, ProcessError};
 use crate::tools::{Toolchain, ToolchainError};
 
+/// Which rendition to fetch for the exported video. Up to 1080p is plenty for
+/// the game, H.264 is the most portable codec and the last fallbacks accept
+/// whatever the site offers. No audio: UltraStar plays `audio.mp3` alongside.
+const VIDEO_FORMAT: &str =
+    "bv*[height<=1080][vcodec^=avc1]/bv*[height<=1080]/bv*/b[height<=1080]/b";
+
 #[derive(Debug, thiserror::Error)]
 pub enum DownloadError {
     #[error("invalid URL: {0}")]
@@ -142,36 +148,84 @@ impl MediaDownloader {
         if !enabled {
             return Ok(None);
         }
+        match self.fetch_video(url, source_dir, cancel).await {
+            Ok(path) => Ok(Some(path)),
+            Err(DownloadError::Process(ProcessError::Cancelled)) => {
+                Err(DownloadError::Process(ProcessError::Cancelled))
+            }
+            Err(error) => {
+                tracing::warn!(%error, "video download failed; continuing without video");
+                Ok(None)
+            }
+        }
+    }
+
+    /// Fetches a video and reports why it could not be obtained. Used by the
+    /// "add video" action, where a silent `None` would hide the cause.
+    pub async fn download_video_required(
+        &self,
+        url: &str,
+        source_dir: impl AsRef<Path>,
+        cancel: Option<CancelFlag>,
+    ) -> Result<PathBuf, DownloadError> {
+        self.fetch_video(url, source_dir, cancel).await
+    }
+
+    async fn fetch_video(
+        &self,
+        url: &str,
+        source_dir: impl AsRef<Path>,
+        cancel: Option<CancelFlag>,
+    ) -> Result<PathBuf, DownloadError> {
         let url = validate_url(url)?;
         let source_dir = source_dir.as_ref();
         std::fs::create_dir_all(source_dir)?;
-        let Some(yt_dlp) = self.toolchain.yt_dlp.as_ref() else {
-            return Ok(None);
-        };
+        let yt_dlp = self
+            .toolchain
+            .yt_dlp
+            .as_ref()
+            .ok_or(DownloadError::MissingTool("yt-dlp"))?;
+        self.require_js_runtime()?;
+
         let output_template = source_dir.join("video.%(ext)s");
         let mut command = tokio_command(&yt_dlp.path);
         command.args([
+            // Video only: UltraStar plays the song audio itself, and H.264
+            // stays within what its ffmpeg build decodes. The later fallbacks
+            // keep working when a site has no H.264 rendition.
             "-f",
-            "bv*+ba/b",
+            VIDEO_FORMAT,
             "--merge-output-format",
+            "mp4",
+            "--remux-video",
             "mp4",
             "--no-playlist",
             "--no-warnings",
             "-o",
         ]);
         command.arg(&output_template);
+        // yt-dlp finds ffmpeg on PATH; point it at the binary the app already
+        // validated when it lives somewhere else.
+        if let Some(ffmpeg) = &self.toolchain.ffmpeg {
+            if let Some(directory) = ffmpeg.path.parent() {
+                if !directory.as_os_str().is_empty() {
+                    command.arg("--ffmpeg-location");
+                    command.arg(directory);
+                }
+            }
+        }
         if self.js_runtimes_flag {
             add_js_runtime(&mut command, &self.toolchain);
         }
         command.arg(url.as_str());
 
         match run_checked(command, self.download_timeout, cancel).await {
-            Ok(_) => Ok(find_output(source_dir, "video")),
+            Ok(_) => find_output(source_dir, "video")
+                .ok_or_else(|| DownloadError::MissingOutput("video.mp4".into())),
             Err(ProcessError::Cancelled) => Err(DownloadError::Process(ProcessError::Cancelled)),
             Err(error) => {
                 let _ = cleanup_partials(source_dir, "video");
-                tracing::warn!(%error, "video download failed; continuing without video");
-                Ok(None)
+                Err(DownloadError::Process(error))
             }
         }
     }
@@ -274,5 +328,19 @@ mod tests {
             .await
             .unwrap();
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn partial_downloads_are_never_mistaken_for_the_video() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("video.mp4.part"), b"partial").unwrap();
+        std::fs::write(directory.path().join("video.mp4.ytdl"), b"state").unwrap();
+        assert!(find_output(directory.path(), "video").is_none());
+
+        std::fs::write(directory.path().join("video.mp4"), b"done").unwrap();
+        assert_eq!(
+            find_output(directory.path(), "video"),
+            Some(directory.path().join("video.mp4"))
+        );
     }
 }

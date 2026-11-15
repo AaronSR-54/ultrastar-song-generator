@@ -89,7 +89,7 @@ Whisper inventa texto en pasajes instrumentales. Antes de aceptar un segmento se
 
 La sonoridad se mide con autocorrelación en tramas de 40 ms sobre la señal decimada a 8 kHz, buscando periodicidad entre 80 y 1000 Hz. Un tono sostenido es periódico; el ruido instrumental no. Los segmentos descartados se cuentan por motivo en `DiscardReport` y el total se guarda en `Transcript::discarded_segments`; la UI puede mostrar «N líneas descartadas».
 
-Si el stem vocal está vacío o casi vacío, la separación ya avisa con `VocalEnergy::is_voice_missing`; en ese caso la transcripción puede producir cero líneas y el editor permite escribir la letra a mano.
+Si el stem vocal está vacío o casi vacío, la separación ya avisa con `VocalEnergy::is_voice_missing`; en ese caso la transcripción puede producir cero líneas y la vista previa aparecerá sin notas. Para corregirlo hay que reprocesar con otra fuente o editar el transcript del proyecto.
 
 ## Edición antes de alinear
 
