@@ -8,10 +8,17 @@ La etapa `Transcribe` pide primero la letra a [LRCLIB](https://lrclib.net), una 
 
 1. `GET /api/get?track_name=…&artist_name=…&duration=…` busca la firma exacta. La duración debe coincidir con ±2 s, así que se redondea a segundos la duración de `yt-dlp`.
 2. Si no hay coincidencia, `GET /api/search` devuelve hasta 20 registros y se elige el mejor: primero la duración más cercana, después los que traen `lyricsfile` y sincronización por palabra.
-3. Cada registro incluye un documento YAML (`lyricsfile`). Si tiene `lines[].words[].start_ms`, esos tiempos se usan tal cual. Si solo hay `syncedLyrics` (LRC), cada línea se reparte entre sus palabras proporcionalmente a su longitud.
-4. Las letras sin tiempos (`plainLyrics`) se descartan: no permiten alinear notas.
+3. Cada registro incluye un documento YAML (`lyricsfile`). Si tiene `lines[].words[].start_ms`, esos tiempos se usan tal cual (`Transcript::word_timed = true`). Si solo hay `syncedLyrics` (LRC), cada línea se reparte entre sus palabras proporcionalmente a su longitud y `word_timed` queda en `false`.
+4. En el LRC, las líneas con marca de tiempo y texto vacío son separadores de estrofa: se conservan para que la línea anterior termine donde de verdad termina y quede el silencio entre estrofas. Ese silencio es lo que permite después corregir el desfase con el audio.
+5. Las letras sin tiempos (`plainLyrics`) se descartan: no permiten alinear notas.
 
 El idioma se toma del `metadata.language` del YAML, pero se contrasta con el texto: LRCLIB etiqueta muchas canciones españolas como `en`. La app cuenta marcadores de español, inglés y francés, detecta alfabetos no latinos y, si hay discrepancia, prioriza el texto. Un idioma forzado (`USDX_LANGUAGE`) siempre gana.
+
+El título y el artista del header salen de los mismos metadatos limpios que la consulta: `LyricsQuery::from_source` quita `(Official Video)`, `- Topic`, `VEVO` y separa `Artista - Canción`. Así el nombre de la carpeta exportada no repite el artista.
+
+## Desfase con el audio
+
+Un LRC sincronizado por línea puede ser de otra subida de la misma canción (intro distinta, interludio más largo). La etapa `Align` mide los tramos vocales del stem y desplaza la letra completa con la mediana de la diferencia entre el inicio de cada estrofa y el inicio vocal más cercano. Solo se aplica si el desplazamiento supera 0.3 s, así que las letras ya correctas no se mueven. Detalle en `docs/alignment.md`.
 
 El cliente se identifica con un `User-Agent`, usa un timeout de 12 s y hace como máximo dos peticiones por canción. Cualquier error de red, límite de peticiones o formato se registra y se cae a Whisper sin fallar la etapa. `USDX_OFFLINE=1` desactiva la consulta.
 
@@ -99,7 +106,8 @@ El editor puede:
 ## Límites y rendimiento
 
 - Un modelo cuantizado q5 necesita ~1 GB de RAM además del audio.
-- En CPU, la velocidad depende de los núcleos; `TranscriptionOptions::threads` usa hasta 8 hilos. Con audio de 10 s y el modelo turbo, la validación local tarda del orden de decenas de segundos; para una canción completa conviene medir y, si no se cumple el presupuesto del diseño, usar un modelo menor.
+- En CPU, la velocidad depende de los núcleos; `TranscriptionOptions::threads` usa hasta 8 hilos. Medido en un i7-14700KF con una canción de 175 s: entre 10 y 20 minutos por intento, más las repeticiones del error `-6`. Por eso Whisper es solo el respaldo cuando no hay letra sincronizada.
+- Whisper tampoco garantiza tiempos por palabra fiables al cantar: en la canción de prueba estiró el primer verso sobre 14 s de intro y adelantó 4 s un verso posterior. La letra de LRCLIB con corrección de desfase da mejores resultados.
 - La app no traduce: `translate = false` por defecto.
 - No hay límite duro de duración; el coste es lineal con el audio. Audios de menos de 100 ms pueden no producir palabras.
 - La transcripción asume una sola voz. En duetos, el MVP solo procesa la mezcla y el usuario debe corregir el texto.

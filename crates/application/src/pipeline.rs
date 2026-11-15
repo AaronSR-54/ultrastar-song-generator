@@ -16,14 +16,17 @@ use usdx_media::{
     MediaDownloader, Toolchain,
 };
 use usdx_ml::{
-    align, analyze_file, dictionary_syllabifier, estimate_tempo, quantize, Alignment,
-    AlignmentOptions, CharonSeparator, QuantizedNote, SeparationService, TempoCandidate,
-    TranscriptionOptions, TranscriptionService, WhisperEngine,
+    align_with_voiced, analyze_file, dictionary_syllabifier, estimate_tempo, load_vocals_16k,
+    quantize, Alignment, AlignmentOptions, CharonSeparator, EnergyTrack, QuantizedNote,
+    SeparationService, TempoCandidate, TranscriptionOptions, TranscriptionService, WhisperEngine,
+    WHISPER_SAMPLE_RATE,
 };
 use usdx_ports::{CancelFlag, SeparationControl, Transcriber, TranscriptionControl};
 
 use crate::jobs::JobContext;
-use crate::lyrics::{transcript_from_record, LyricsClient, LyricsError, LyricsQuery};
+use crate::lyrics::{
+    display_labels, transcript_from_record, LyricsClient, LyricsError, LyricsQuery,
+};
 use crate::project::{atomic_write, now_unix_ms, Project, ProjectPaths, ProjectStore};
 use crate::stages::{StageId, StageStatus};
 
@@ -309,8 +312,9 @@ impl Pipeline {
             .fetch_metadata(&project.source.url, Some(progress.cancel_flag()))
             .await
             .map_err(|error| PipelineError::stage(stage, error))?;
-        project.source.title = metadata.title.clone();
-        project.source.artist = metadata.artist.clone();
+        let (title, artist) = display_labels(&metadata.title, metadata.artist.as_deref());
+        project.source.title = title;
+        project.source.artist = (!artist.is_empty()).then_some(artist);
         project.source.duration_ms = Some(metadata.duration_ms);
         project.source.site = metadata.site.clone();
         project.source.thumbnail_url = metadata.thumbnail_url.clone();
@@ -503,6 +507,13 @@ impl Pipeline {
         progress.report(0.1, "reading transcription and notes");
         let transcript: Transcript = read_json(&self.paths().transcript(), stage)?;
         let artifacts: PitchArtifacts = read_json(&self.paths().notes(), stage)?;
+        progress.report(0.2, "measuring the vocal track");
+        let voiced_segments = load_vocals_16k(self.paths().vocals())
+            .map(|samples| {
+                EnergyTrack::analyze(&samples, WHISPER_SAMPLE_RATE).voiced_segments(1.2, 1.0)
+            })
+            .unwrap_or_default();
+
         progress.report(0.4, "aligning syllables");
 
         let mut header = artifacts.header;
@@ -520,12 +531,13 @@ impl Pipeline {
             notes: artifacts.notes,
             adjustments: Vec::new(),
         };
-        let alignment: Alignment = align(
+        let alignment: Alignment = align_with_voiced(
             &transcript,
             &quantized,
             &header,
             dictionary_syllabifier(),
             AlignmentOptions::default(),
+            Some(&voiced_segments),
         );
         progress.report(0.9, "writing song document");
         let document = alignment.to_song_doc(header);
@@ -752,6 +764,7 @@ mod tests {
             language_confidence: 0.9,
             lines: vec![TranscriptLine::new(vec![word("hola", 0.0, 0.5)])],
             discarded_segments: 0,
+            word_timed: true,
         };
         write_json(&pipeline.paths().transcript(), &transcript).unwrap();
         let artifacts = PitchArtifacts {

@@ -189,6 +189,7 @@ mod tests {
                 TranscriptLine::new(vec![word("adios", 1.0, 1.4)]),
             ],
             discarded_segments: 0,
+            word_timed: false,
         }
     }
 

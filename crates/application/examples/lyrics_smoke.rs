@@ -3,6 +3,9 @@
 //! ```bash
 //! cargo run -p usdx-application --example lyrics_smoke -- "Coldplay" "Yellow" 267
 //! ```
+//!
+//! With `USDX_TRANSCRIPT_OUT`, the converted transcript is also written there
+//! so the alignment can be inspected with `usdx-ml`'s `align_probe`.
 
 use usdx_application::{transcript_from_record, LyricsClient, LyricsQuery};
 
@@ -30,6 +33,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     match transcript_from_record(&record, None) {
         Some(transcript) => {
+            if let Some(path) = std::env::var_os("USDX_TRANSCRIPT_OUT") {
+                let json = serde_json::to_string_pretty(&transcript)?;
+                std::fs::write(path, json)?;
+            }
             println!(
                 "{} lines, {} words, language {}",
                 transcript.lines.len(),

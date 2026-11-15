@@ -13,8 +13,8 @@ pub mod transcription;
 pub mod vocal_energy;
 
 pub use alignment::{
-    align, AlignedNote, AlignedPhrase, Alignment, AlignmentOptions, AlignmentStats,
-    CONTINUATION_TEXT,
+    align, align_with_voiced, AlignedNote, AlignedPhrase, Alignment, AlignmentOptions,
+    AlignmentStats, CONTINUATION_TEXT,
 };
 pub use hallucination::{
     filter_segments, normalize_text, DiscardReport, EnergyTrack, FilterOutcome,

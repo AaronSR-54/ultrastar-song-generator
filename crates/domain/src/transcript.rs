@@ -91,6 +91,10 @@ pub struct Transcript {
     pub lines: Vec<TranscriptLine>,
     /// Segments removed by the hallucination filter.
     pub discarded_segments: usize,
+    /// True when the times come from per-word timings (Whisper or a
+    /// word-timed lyrics file). Line-synced lyrics spread their words over the
+    /// line interval, so only the line boundaries are trustworthy.
+    pub word_timed: bool,
 }
 
 impl Transcript {
@@ -163,6 +167,7 @@ mod tests {
                 },
             ])],
             discarded_segments: 0,
+            word_timed: true,
         };
 
         transcript.lines[0].words[1].set_text("mondo");
@@ -180,10 +185,18 @@ mod tests {
             language_confidence: 0.87,
             lines: vec![TranscriptLine::new(vec![word("don't", 0.0, 0.3)])],
             discarded_segments: 2,
+            word_timed: true,
         };
         let json = serde_json::to_string(&transcript).unwrap();
         let parsed: Transcript = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, transcript);
         assert_eq!(parsed.duration_s(), 0.3);
+
+        // Artifacts written before the field existed still parse.
+        let legacy: Transcript = serde_json::from_str(
+            r#"{"language":"es","language_confidence":0.9,"lines":[],"discarded_segments":0}"#,
+        )
+        .unwrap();
+        assert!(!legacy.word_timed);
     }
 }

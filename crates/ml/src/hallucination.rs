@@ -180,6 +180,50 @@ impl EnergyTrack {
         self.rms.is_empty()
     }
 
+    /// Voiced intervals in seconds, used to line up external lyrics with the
+    /// real audio. Runs closer than `min_gap_s` are merged and runs shorter
+    /// than `min_duration_s` are dropped.
+    pub fn voiced_segments(&self, min_gap_s: f64, min_duration_s: f64) -> Vec<(f64, f64)> {
+        if self.rms.is_empty() {
+            return Vec::new();
+        }
+        let mut sorted: Vec<f32> = self.rms.iter().copied().filter(|v| v.is_finite()).collect();
+        if sorted.is_empty() {
+            return Vec::new();
+        }
+        sorted.sort_by(f32::total_cmp);
+        let reference = sorted[(sorted.len() as f64 * 0.95) as usize % sorted.len()];
+        let threshold = (reference * 0.05).clamp(0.002, 0.05);
+
+        let mut runs: Vec<(usize, usize)> = Vec::new();
+        let mut current: Option<(usize, usize)> = None;
+        for (index, rms) in self.rms.iter().enumerate() {
+            if *rms > threshold {
+                current = Some(match current {
+                    Some((start, _)) => (start, index + 1),
+                    None => (index, index + 1),
+                });
+            } else if let Some(run) = current.take() {
+                runs.push(run);
+            }
+        }
+        if let Some(run) = current {
+            runs.push(run);
+        }
+
+        let mut segments: Vec<(f64, f64)> = Vec::new();
+        for (start, end) in runs {
+            let start_s = start as f64 * self.hop_s;
+            let end_s = end as f64 * self.hop_s;
+            match segments.last_mut() {
+                Some(last) if start_s - last.1 < min_gap_s => last.1 = end_s,
+                _ => segments.push((start_s, end_s)),
+            }
+        }
+        segments.retain(|(start, end)| end - start >= min_duration_s);
+        segments
+    }
+
     pub fn stats(&self, start_s: f64, end_s: f64) -> SegmentStats {
         if self.rms.is_empty() || end_s <= start_s {
             return SegmentStats::default();
@@ -362,6 +406,24 @@ mod tests {
         let noise_stats = noise_track.stats(0.0, 1.0);
         assert!(noise_stats.rms > 0.05);
         assert!(noise_stats.voiced_fraction < 0.2, "{noise_stats:?}");
+    }
+
+    #[test]
+    fn voiced_segments_merge_short_gaps_and_ignore_silence() {
+        let mut samples = vec![0.0_f32; 16_000];
+        samples.extend(tone(220.0, 1.5, 16_000));
+        samples.extend(vec![0.0_f32; 4_000]);
+        samples.extend(tone(220.0, 1.0, 16_000));
+        samples.extend(vec![0.0_f32; 48_000]);
+        samples.extend(tone(220.0, 2.0, 16_000));
+
+        let track = EnergyTrack::analyze(&samples, 16_000);
+        let segments = track.voiced_segments(1.0, 0.3);
+        assert_eq!(segments.len(), 2, "{segments:?}");
+        assert!((segments[0].0 - 1.0).abs() < 0.1, "{segments:?}");
+        assert!((segments[0].1 - 3.5).abs() < 0.35, "{segments:?}");
+        assert!((segments[1].0 - 6.5).abs() < 0.35, "{segments:?}");
+        assert!((segments[1].1 - 8.5).abs() < 0.35, "{segments:?}");
     }
 
     #[test]

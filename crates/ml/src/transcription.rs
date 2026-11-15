@@ -424,6 +424,7 @@ pub fn build_transcript(
         language_confidence: output.language_confidence,
         lines,
         discarded_segments,
+        word_timed: true,
     }
 }
 

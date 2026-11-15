@@ -203,7 +203,7 @@ Las canciones de referencia con las que se prueba el formato están en [`docs/pe
 | «No se pudo descargar Whisper» | Solo se descarga al no encontrar letra online; revisa la conexión y pulsa **Reintentar** |
 | La transcripción falla con «failed to encode» | Fallo intermitente de whisper.cpp en CPU; el motor reintenta hasta 5 veces. Si persiste, vuelve a pulsar **Reintentar** |
 | No encuentra la letra online | La app usa Whisper automáticamente. Si el título de YouTube lleva sufijos (`(Official Video)`, `Lyric Video`), la búsqueda puede fallar: corrige el texto en el editor |
-| La letra está desincronizada | LRCLIB puede tener otra versión/master. Ajusta BPM/GAP en el editor o procesa de nuevo con `USDX_OFFLINE=1` para usar Whisper |
+| La letra está desincronizada | La app corrige el desfase global cuando LRCLIB trae otra versión. Si aun así no cuadra, ajusta BPM/GAP en el editor |
 | No suena nada | No hay dispositivo de audio: el editor sigue funcionando en silencio |
 | La canción se desincroniza al final | El formato no admite mapa de tempo; ajusta BPM/GAP o divide la canción |
 | La letra sale mal | Corrige el texto en el inspector; la silabificación se recalcula al regenerar |

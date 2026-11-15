@@ -74,6 +74,13 @@ impl LyricsQuery {
     }
 }
 
+/// Clean title and artist for display and export, derived from the raw video
+/// metadata. The artist is empty when it cannot be inferred.
+pub fn display_labels(title: &str, artist: Option<&str>) -> (String, String) {
+    let query = LyricsQuery::from_source(title, artist, None);
+    (query.track_name, query.artist_name.unwrap_or_default())
+}
+
 /// One usable lyrics record, already mapped from the API JSON.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LyricsRecord {
@@ -453,6 +460,10 @@ struct LyricsFileWord {
 
 fn transcript_from_lyrics_file(yaml: &str, language_hint: Option<&str>) -> Option<Transcript> {
     let file: LyricsFile = serde_yaml_ng::from_str(yaml).ok()?;
+    let word_timed = file
+        .lines
+        .iter()
+        .any(|line| line.words.iter().any(|word| word.start_ms.is_some()));
     let language = decide_language(
         &lyrics_text(&file.lines),
         file.metadata.language.as_deref(),
@@ -533,12 +544,14 @@ fn transcript_from_lyrics_file(yaml: &str, language_hint: Option<&str>) -> Optio
         }
     }
 
-    transcript_from_lines(lines, &language)
+    transcript_from_lines(lines, &language, word_timed)
 }
 
 // -- LRC fallback ------------------------------------------------------------
 
 fn transcript_from_lrc(lrc: &str, language_hint: Option<&str>) -> Option<Transcript> {
+    // Timestamped empty entries are stanza separators; they mark where the
+    // previous line really ends, so they must survive until the line is built.
     let mut entries: Vec<(f64, String)> = Vec::new();
     for raw in lrc.lines() {
         let mut rest = raw.trim_start();
@@ -555,7 +568,7 @@ fn transcript_from_lrc(lrc: &str, language_hint: Option<&str>) -> Option<Transcr
             }
         }
         let text = rest.trim();
-        if timestamps.is_empty() || text.is_empty() {
+        if timestamps.is_empty() {
             continue;
         }
         for seconds in timestamps {
@@ -575,6 +588,9 @@ fn transcript_from_lrc(lrc: &str, language_hint: Option<&str>) -> Option<Transcr
     let mut previous_start = 0.0_f64;
 
     for (index, (start, text)) in entries.iter().enumerate() {
+        if text.is_empty() {
+            continue;
+        }
         let end = entries
             .get(index + 1)
             .map(|(next, _)| *next)
@@ -594,10 +610,14 @@ fn transcript_from_lrc(lrc: &str, language_hint: Option<&str>) -> Option<Transcr
         }
     }
 
-    transcript_from_lines(lines, &language)
+    transcript_from_lines(lines, &language, false)
 }
 
-fn transcript_from_lines(lines: Vec<TranscriptLine>, language: &str) -> Option<Transcript> {
+fn transcript_from_lines(
+    lines: Vec<TranscriptLine>,
+    language: &str,
+    word_timed: bool,
+) -> Option<Transcript> {
     if lines.is_empty() {
         return None;
     }
@@ -606,6 +626,7 @@ fn transcript_from_lines(lines: Vec<TranscriptLine>, language: &str) -> Option<T
         language_confidence: 0.9,
         lines,
         discarded_segments: 0,
+        word_timed,
     })
 }
 
@@ -1014,6 +1035,22 @@ lines:
         );
         assert_eq!(query.track_name, "September");
         assert_eq!(query.artist_name.as_deref(), Some("Earth, Wind & Fire"));
+    }
+
+    #[test]
+    fn display_labels_strip_youtube_decorations() {
+        let (title, artist) = display_labels("Walls - Mi nena (Videoclip Oficial)", None);
+        assert_eq!(title, "Mi nena");
+        assert_eq!(artist, "Walls");
+
+        let (title, artist) = display_labels("September", Some("Earth, Wind & Fire - Topic"));
+        assert_eq!(title, "September");
+        assert_eq!(artist, "Earth, Wind & Fire");
+
+        // Already clean metadata stays untouched.
+        let (title, artist) = display_labels("Mi nena", Some("Walls"));
+        assert_eq!(title, "Mi nena");
+        assert_eq!(artist, "Walls");
     }
 
     #[test]
