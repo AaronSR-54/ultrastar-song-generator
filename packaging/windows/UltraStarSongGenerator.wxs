@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX v5 authoring for the Windows installer.
+
+  packaging/windows/package.ps1 supplies three preprocessor variables:
+    Version       numeric version (major.minor.build, no prerelease tag)
+    BinarySource  path to the release executable
+    IconSource    path to assets/icon.ico
+
+  The package installs per user (no UAC, no administrator rights) into
+  %LOCALAPPDATA%\Programs\UltraStar Song Generator and adds a Start Menu
+  shortcut. User data lives outside the install folder and survives upgrades
+  and uninstalls.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="UltraStar Song Generator"
+      Manufacturer="Aaron Sanz Roca"
+      Version="$(var.Version)"
+      UpgradeCode="504D506E-2B2A-4BA4-AC74-A0DFEC47CA27"
+      Scope="perUser"
+      Compressed="yes"
+      Language="1033">
+
+    <!-- One product code per build, one fixed upgrade code: a newer version
+         replaces the previous one instead of installing next to it. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of UltraStar Song Generator is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.IconSource)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <!-- The MSVC target links the CRT dynamically, so the Visual C++
+         redistributable must already be present. Look for the two DLLs the
+         binary imports and fail with an actionable message instead of a
+         cryptic "entry point not found" at first launch. -->
+    <Property Id="VCRUNTIME140">
+      <DirectorySearch Id="VCRuntime140Search" Path="[SystemFolder]" Depth="0">
+        <FileSearch Id="VCRuntime140FileSearch" Name="VCRUNTIME140.dll" />
+      </DirectorySearch>
+    </Property>
+    <Property Id="VCRUNTIME140_1">
+      <DirectorySearch Id="VCRuntime140_1Search" Path="[SystemFolder]" Depth="0">
+        <FileSearch Id="VCRuntime140_1FileSearch" Name="VCRUNTIME140_1.dll" />
+      </DirectorySearch>
+    </Property>
+    <Launch
+        Condition="VCRUNTIME140 AND VCRUNTIME140_1"
+        Message="UltraStar Song Generator needs the Microsoft Visual C++ 2015-2022 Redistributable (x64). Install it from https://aka.ms/vs/17/release/vc_redist.x64.exe and run this installer again." />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="UltraStar Song Generator" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppShortcutFolder" Name="UltraStar Song Generator" />
+    </StandardDirectory>
+
+    <Feature Id="DefaultFeature" Title="UltraStar Song Generator" Level="1">
+      <ComponentRef Id="MainExecutable" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <!-- KeyPath is the file itself. ICE38/ICE64 complain about per-user
+           components without an HKCU key path; the shortcut below creates the
+           HKCU entries and package.ps1 suppresses both ICEs on purpose. -->
+      <Component Id="MainExecutable" Guid="*">
+        <File Id="DesktopExecutable"
+              Source="$(var.BinarySource)"
+              Name="usdx-desktop.exe"
+              KeyPath="yes" />
+        <Shortcut Id="StartMenuShortcut"
+                  Directory="AppShortcutFolder"
+                  Name="UltraStar Song Generator"
+                  Description="Generate UltraStar Deluxe songs from audio and video"
+                  Target="[INSTALLFOLDER]usdx-desktop.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon"
+                  Advertise="no" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>

@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ultrastar-song-generator
+Source: https://github.com/AaronSR-54/ultrastar-song-generator
+
+Files: *
+Copyright: Aaron Sanz Roca <a.sanzblog6b@gmail.com>
+License: MIT or Apache-2.0
+ This project is distributed under the MIT OR Apache-2.0 licence, at your
+ option. The full licence texts, and the licences of every linked dependency,
+ live in the upstream repository (docs/licenses.md).

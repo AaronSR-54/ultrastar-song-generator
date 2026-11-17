@@ -136,6 +136,26 @@ $env:Path = "$PWD\target\debug\build;$env:Path"
 
 Para `--release`, usa `target\release\build`.
 
+## Compilar la app
+
+Con el entorno del sistema preparado, desde la raíz del repositorio:
+
+```bash
+git clone https://github.com/AaronSR-54/ultrastar-song-generator.git
+cd ultrastar-song-generator
+cargo build --release -p usdx-desktop
+```
+
+El ejecutable queda en `target/release/usdx-desktop` (`.exe` en Windows). Para
+ejecutarlo sin instalar nada:
+
+```bash
+target/release/usdx-desktop --selftest
+```
+
+Para generar los instaladores nativos (MSI, DMG, DEB) a partir de ese binario,
+consulta [`../packaging/README.md`](../packaging/README.md).
+
 ## Verificación
 
 Desde la raíz del repositorio:

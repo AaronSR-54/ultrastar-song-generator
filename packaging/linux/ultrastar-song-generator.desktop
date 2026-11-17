@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=UltraStar Song Generator
+GenericName=Karaoke Song Creator
+Comment=Generate UltraStar Deluxe songs from audio and video
+Exec=usdx-desktop
+Icon=ultrastar-song-generator
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+Keywords=karaoke;ultrastar;music;lyrics;
+StartupWMClass=usdx-desktop
