@@ -72,15 +72,20 @@ finally {
     Pop-Location
 }
 
-# ICE38/ICE64 warn about components installed in the user profile whose key
-# path is a file. That is deliberate here (per-user install, HKCU entries come
-# from the shortcut), so they are suppressed. `wix build` has no -sice, hence
-# the separate validate call. Validation is best effort: some hardened CI
-# service accounts cannot run the ICE engine, and that must not hide a
-# successfully built MSI.
-& wix msi validate $artifact -sice ICE38 -sice ICE64
+# Per-user directories trip ICE64 (a directory in the user profile that is not
+# anybody's key path); the component is keyed in HKCU, so it is suppressed. The
+# other ICEs stay enabled on purpose: they caught ICE43 while this file was
+# being written, and hiding them again would hide that class of bug. `wix
+# build` has no -sice, hence the separate validate call. Validation is best
+# effort: some hardened CI service accounts cannot run the ICE engine, and that
+# must not hide a successfully built MSI.
+& wix msi validate $artifact -sice ICE64
 if ($LASTEXITCODE -ne 0) {
     Write-Warning "ICE validation reported problems for $artifact; the MSI was still built."
 }
 
 Write-Output $artifact
+
+# `wix msi validate` leaves its exit code in $LASTEXITCODE and the GitHub
+# runner propagates it, so a successful build would still fail the step.
+exit 0
