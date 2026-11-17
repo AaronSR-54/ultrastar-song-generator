@@ -11,6 +11,12 @@
   %LOCALAPPDATA%\Programs\UltraStar Song Generator and adds a Start Menu
   shortcut. User data lives outside the install folder and survives upgrades
   and uninstalls.
+
+  Scope is perUserOrMachine on purpose: it emits ALLUSERS=2 plus
+  MSIINSTALLPERUSER=1, which keeps the install and its Apps & Features entry
+  in HKCU even when an administrator runs the MSI. Scope="perUser" only sets
+  the legacy summary-information bit, and an elevated client then publishes
+  the product under HKLM.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
@@ -18,7 +24,7 @@
       Manufacturer="Aaron Sanz Roca"
       Version="$(var.Version)"
       UpgradeCode="504D506E-2B2A-4BA4-AC74-A0DFEC47CA27"
-      Scope="perUser"
+      Scope="perUserOrMachine"
       Compressed="yes"
       Language="1033">
 
