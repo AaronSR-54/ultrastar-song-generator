@@ -277,7 +277,7 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
                 >
                   SHA256SUMS.txt
                   <span className="font-mono text-[9px] tracking-[0.04em] text-text-3">
-                    ZIP
+                    · ZIP
                   </span>
                   <Icon name="download" size={13} />
                 </a>
@@ -289,7 +289,7 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
                 >
                   SHA256SUMS-installers.txt
                   <span className="font-mono text-[9px] tracking-[0.04em] text-text-3">
-                    MSI · DMG · DEB
+                    · MSI · DMG · DEB
                   </span>
                   <Icon name="download" size={13} />
                 </a>
