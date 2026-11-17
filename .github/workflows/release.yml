@@ -301,12 +301,31 @@ jobs:
           $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\UltraStar Song Generator\UltraStar Song Generator.lnk'
           if (-not (Test-Path -LiteralPath $shortcut)) { throw "missing Start Menu shortcut: $shortcut" }
 
-          $entry = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
-            ForEach-Object { Get-ItemProperty $_.PSPath } |
-            Where-Object { $_.DisplayName -eq 'UltraStar Song Generator' }
-          if (-not $entry) { throw 'missing entry in Apps & Features' }
-          if ($entry.DisplayVersion -ne $env:VERSION_NUMERIC) {
-            throw "Apps & Features shows $($entry.DisplayVersion), expected $env:VERSION_NUMERIC"
+          # The per-user ARP entry can live in HKCU (Uninstall), in HKLM (some
+          # elevated per-user installs) or only in Installer\Products, so survey
+          # all three and report what the package actually published.
+          $roots = @(
+            'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall',
+            'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall',
+            'HKCU:\Software\Microsoft\Installer\Products'
+          )
+          $entries = @()
+          foreach ($root in $roots) {
+            if (-not (Test-Path $root)) {
+              Write-Output "no existe: $root"
+              continue
+            }
+            foreach ($item in Get-ChildItem $root) {
+              $props = Get-ItemProperty $item.PSPath -ErrorAction SilentlyContinue
+              $label = if ($props.DisplayName) { $props.DisplayName } else { $props.ProductName }
+              if (-not $label) { continue }
+              Write-Output "$root -> $label $($props.DisplayVersion)"
+              if ($props.DisplayName -eq 'UltraStar Song Generator') { $entries += $props }
+            }
+          }
+          if ($entries.Count -eq 0) { throw 'missing entry in Apps & Features' }
+          if ($entries[0].DisplayVersion -ne $env:VERSION_NUMERIC) {
+            throw "Apps & Features shows $($entries[0].DisplayVersion), expected $env:VERSION_NUMERIC"
           }
 
           $bundled = Get-ChildItem -LiteralPath $installDir -Recurse -File |
