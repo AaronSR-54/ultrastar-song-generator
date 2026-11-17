@@ -21,23 +21,29 @@ vez; más abajo está cómo continuar de forma consciente.
 
 ## Verificar la descarga
 
-Cada release publica `SHA256SUMS.txt` junto a los tres instaladores. Descarga el
-fichero y comprueba el que vayas a usar.
+Cada release publica los checksums junto a los artefactos:
+
+- `SHA256SUMS-installers.txt` cubre los tres instaladores nativos (el que
+  necesitas aquí).
+- `SHA256SUMS.txt` cubre los ZIP portables que ofrece la página web.
+
+Descarga el fichero que corresponda a lo que hayas bajado y comprueba el
+instalador.
 
 ```bash
 # Linux
-sha256sum -c SHA256SUMS.txt --ignore-missing
+sha256sum -c SHA256SUMS-installers.txt --ignore-missing
 ```
 
 ```bash
 # macOS
-shasum -a 256 -c SHA256SUMS.txt --ignore-missing
+shasum -a 256 -c SHA256SUMS-installers.txt --ignore-missing
 ```
 
 ```powershell
 # Windows
 Get-FileHash .\UltraStar-Song-Generator-*-windows-x64.msi -Algorithm SHA256
-Get-Content .\SHA256SUMS.txt
+Get-Content .\SHA256SUMS-installers.txt
 ```
 
 Compara el hash a mano: el valor calculado debe coincidir con la línea del
