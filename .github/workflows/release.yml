@@ -292,8 +292,17 @@ jobs:
           $exe = Join-Path $installDir 'usdx-desktop.exe'
 
           $installLog = Join-Path $PWD 'install.log'
+          Write-Output "VCRUNTIME140:   $(Test-Path "$env:SystemRoot\System32\VCRUNTIME140.dll")"
+          Write-Output "VCRUNTIME140_1: $(Test-Path "$env:SystemRoot\System32\VCRUNTIME140_1.dll")"
+
           $install = Start-Process msiexec.exe -ArgumentList @('/i', "`"$msi`"", '/qn', '/norestart', '/l*v', "`"$installLog`"") -Wait -PassThru
-          if ($install.ExitCode -ne 0) { throw "msiexec /i failed with exit code $($install.ExitCode)" }
+          if ($install.ExitCode -ne 0) {
+            if (Test-Path -LiteralPath $installLog) {
+              Select-String -Path $installLog -Pattern 'Error|LaunchCondition|Return value 3|Note: 1: 2262|Product:' |
+                Select-Object -Last 40 | ForEach-Object { Write-Output $_.Line }
+            }
+            throw "msiexec /i failed with exit code $($install.ExitCode)"
+          }
           if (Select-String -Path $installLog -SimpleMatch 'Return value 3') { throw 'install log reports a failure (Return value 3)' }
 
           if (-not (Test-Path -LiteralPath $exe)) { throw "missing $exe" }
@@ -337,6 +346,16 @@ jobs:
 
           $leftovers = @(Get-ChildItem -LiteralPath $installDir -Recurse -File -ErrorAction SilentlyContinue)
           if ($leftovers.Count -ne 0) { throw "uninstall left files behind: $($leftovers.Name -join ', ')" }
+
+      - name: Upload MSI logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi-logs
+          path: |
+            install.log
+            uninstall.log
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:
