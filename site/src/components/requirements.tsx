@@ -122,8 +122,9 @@ export function Requirements() {
             Compilar · opcional
           </MonoLabel>
           <p className="mt-2 max-w-[52ch] text-caption leading-[1.65] text-text-2">
-            Los ZIP son binarios. Solo necesitas Rust 1.89+ si compilas desde el
-            código; los modelos no van dentro del ejecutable.
+            Los ZIP y los instaladores son binarios ya compilados. Solo
+            necesitas Rust 1.89+ si compilas desde el código; los modelos no van
+            dentro del ejecutable.
           </p>
         </div>
       </div>

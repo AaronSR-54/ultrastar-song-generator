@@ -105,13 +105,25 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
     return map;
   }, [availableRelease]);
 
+  const installerMap = useMemo(() => {
+    const map = new Map<AssetKey, { url: string; size: number }>();
+    for (const installer of availableRelease?.installers ?? []) {
+      map.set(installer.key, { url: installer.url, size: installer.size });
+    }
+    return map;
+  }, [availableRelease]);
+
   const selectedAsset = selected ? assetMap.get(selected) : undefined;
-  const primaryHref = selectedAsset?.url ?? RELEASES_URL;
-  const primaryLabel = selectedAsset
-    ? `Descargar para ${selected ? ASSETS[selected].label : ""}`
-    : availableRelease
-      ? "Elegir descarga"
-      : "Ver releases";
+  const selectedInstaller = selected ? installerMap.get(selected) : undefined;
+  const primaryHref =
+    selectedInstaller?.url ?? selectedAsset?.url ?? RELEASES_URL;
+  const primaryLabel = selectedInstaller
+    ? `Descargar instalador para ${selected ? ASSETS[selected].label : ""}`
+    : selectedAsset
+      ? `Descargar ZIP para ${selected ? ASSETS[selected].label : ""}`
+      : availableRelease
+        ? "Elegir descarga"
+        : "Ver releases";
 
   const version =
     release.status === "available"
@@ -122,13 +134,15 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
 
   const statusNote = detection?.reason
     ? detection.reason
-    : selectedAsset && selected
-      ? `ZIP · ${formatSize(selectedAsset.size)} · recomendado para ${ASSETS[selected].short}.`
-      : availableRelease
-        ? "Tres plataformas. La detección solo cambia la recomendación."
-        : release.status === "missing-assets"
-          ? "Todavía no hay binarios publicados para esta versión."
-          : "No hemos podido comprobar la última versión.";
+    : selectedInstaller && selected
+      ? `${ASSETS[selected].installer.format} · ${formatSize(selectedInstaller.size)} · instalador recomendado para ${ASSETS[selected].short}.`
+      : selectedAsset && selected
+        ? `ZIP · ${formatSize(selectedAsset.size)} · sin instalador para esta versión.`
+        : availableRelease
+          ? "Tres plataformas, cada una con instalador nativo y ZIP portable."
+          : release.status === "missing-assets"
+            ? "Todavía no hay binarios publicados para esta versión."
+            : "No hemos podido comprobar la última versión.";
 
   function select(key: AssetKey) {
     setSelected(key);
@@ -159,9 +173,11 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
             <ButtonLink
               href={primaryHref}
               size="lg"
-              icon={selectedAsset ? "download" : "external"}
+              icon={selectedInstaller || selectedAsset ? "download" : "external"}
               className="w-full sm:w-auto"
-              {...(selectedAsset ? {} : { target: "_blank", rel: "noreferrer noopener" })}
+              {...(selectedInstaller || selectedAsset
+                ? {}
+                : { target: "_blank", rel: "noreferrer noopener" })}
             >
               {primaryLabel}
             </ButtonLink>
@@ -214,19 +230,24 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
             Descargas
           </MonoLabel>
           <span className="font-mono text-[9px] tracking-[0.04em] text-text-3">
-            ZIP · sin instalador
+            Instalador + ZIP
           </span>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-3">
           {ASSET_KEYS.map((key) => {
             const data = assetMap.get(key);
+            const installer = installerMap.get(key);
             return (
               <PlatformCard
                 key={key}
                 asset={ASSETS[key]}
                 downloadUrl={data?.url ?? null}
+                installerUrl={installer?.url ?? null}
                 size={data ? formatSize(data.size) : "—"}
+                installerSize={
+                  installer ? formatSize(installer.size) : "—"
+                }
                 selected={selected === key}
                 recommended={detection?.asset === key}
                 onSelect={select}
@@ -243,25 +264,45 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
             Integridad
           </MonoLabel>
           <p className="mt-2 max-w-[52ch] text-caption leading-[1.65] text-text-2">
-            Cada ZIP se publica con su SHA-256. Descarga el archivo de sumas y
-            compara antes de abrir el binario.
+            Cada ZIP y cada instalador se publica con su SHA-256. Descarga el
+            archivo de sumas y compara antes de abrir el archivo.
           </p>
-          {availableRelease?.checksumsUrl ? (
-            <a
-              href={availableRelease.checksumsUrl}
-              className="mt-3 inline-flex items-center gap-1.5 text-body font-medium text-text underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent-text"
-            >
-              SHA256SUMS.txt
-              <Icon name="download" size={13} />
-            </a>
+          {availableRelease?.checksumsUrl ||
+          availableRelease?.installerChecksumsUrl ? (
+            <div className="mt-3 flex flex-col gap-2">
+              {availableRelease.checksumsUrl ? (
+                <a
+                  href={availableRelease.checksumsUrl}
+                  className="inline-flex items-center gap-1.5 text-body font-medium text-text underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent-text"
+                >
+                  SHA256SUMS.txt
+                  <span className="font-mono text-[9px] tracking-[0.04em] text-text-3">
+                    ZIP
+                  </span>
+                  <Icon name="download" size={13} />
+                </a>
+              ) : null}
+              {availableRelease.installerChecksumsUrl ? (
+                <a
+                  href={availableRelease.installerChecksumsUrl}
+                  className="inline-flex items-center gap-1.5 text-body font-medium text-text underline decoration-border underline-offset-4 transition-colors duration-150 hover:text-accent-text"
+                >
+                  SHA256SUMS-installers.txt
+                  <span className="font-mono text-[9px] tracking-[0.04em] text-text-3">
+                    MSI · DMG · DEB
+                  </span>
+                  <Icon name="download" size={13} />
+                </a>
+              ) : null}
+            </div>
           ) : (
             <p className="mt-3 font-mono text-[10px] text-text-3">
-              SHA256SUMS.txt se publica con cada release.
+              Los archivos de sumas se publican con cada release.
             </p>
           )}
           <p className="mt-4 max-w-[52ch] text-caption leading-[1.65] text-text-3">
-            ¿Prefieres instalador nativo? La misma release adjunta MSI, DMG y
-            DEB en{" "}
+            El instalador registra la app y permite desinstalarla desde el
+            sistema. El ZIP se ejecuta sin instalar. Todo queda en{" "}
             <a
               href={RELEASES_URL}
               target="_blank"
@@ -276,25 +317,25 @@ export function DownloadPanel({ release }: { release: ReleaseState }) {
 
         <div className="border border-border bg-field p-4">
           <MonoLabel className="text-[9px] tracking-[0.16em]">
-            Verificar
+            Verificar instaladores
           </MonoLabel>
           <dl className="mt-3 space-y-2.5 font-mono text-[10px] leading-[1.7]">
             <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-2">
               <dt className="text-text-3">Linux</dt>
               <dd className="break-all text-text-2 select-all">
-                sha256sum -c SHA256SUMS.txt
+                sha256sum -c SHA256SUMS-installers.txt
               </dd>
             </div>
             <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-2">
               <dt className="text-text-3">macOS</dt>
               <dd className="break-all text-text-2 select-all">
-                shasum -a 256 -c SHA256SUMS.txt
+                shasum -a 256 -c SHA256SUMS-installers.txt
               </dd>
             </div>
             <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-2">
               <dt className="text-text-3">Windows</dt>
               <dd className="break-all text-text-2 select-all">
-                Get-FileHash .\usdx-desktop-windows-x86_64.zip -Algorithm SHA256
+                Get-FileHash .\*-windows-x64.msi -Algorithm SHA256
               </dd>
             </div>
           </dl>

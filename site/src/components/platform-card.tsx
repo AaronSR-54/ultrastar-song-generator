@@ -22,7 +22,9 @@ const icons: Record<AssetKey, IconName> = {
 type Props = {
   asset: Asset;
   downloadUrl: string | null;
+  installerUrl: string | null;
   size: string;
+  installerSize: string;
   selected: boolean;
   recommended: boolean;
   onSelect: (key: AssetKey) => void;
@@ -32,7 +34,9 @@ type Props = {
 export function PlatformCard({
   asset,
   downloadUrl,
+  installerUrl,
   size,
+  installerSize,
   selected,
   recommended,
   onSelect,
@@ -92,30 +96,63 @@ export function PlatformCard({
 
       <div
         className={cn(
-          "flex items-center justify-between gap-3 border-t px-5 py-3",
+          "border-t",
           selected ? "border-accent/30" : "border-border",
         )}
       >
-        {downloadUrl ? (
+        {installerUrl ? (
           <a
-            href={downloadUrl}
-            className="inline-flex items-center gap-1.5 text-caption font-semibold text-text transition-colors duration-150 hover:text-accent-text"
+            href={installerUrl}
+            className="flex items-center justify-between gap-3 bg-accent/[0.06] px-5 py-3 text-caption font-semibold text-text transition-colors duration-150 hover:bg-accent/[0.12] hover:text-accent-text"
           >
-            Descargar ZIP
-            <Icon name="download" size={12} />
+            <span className="inline-flex items-center gap-1.5">
+              {asset.installer.label}
+              <Icon name="download" size={12} />
+            </span>
+            <MonoLabel className="text-[9px] tracking-[0.08em]">
+              {installerSize}
+            </MonoLabel>
           </a>
         ) : (
-          <a
-            href={fallbackUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="inline-flex items-center gap-1.5 text-caption font-semibold text-text-2 transition-colors duration-150 hover:text-text"
-          >
-            Ver releases
-            <Icon name="external" size={11} />
-          </a>
+          <div className="flex items-center justify-between gap-3 px-5 py-3">
+            <span className="text-caption text-text-3">
+              {asset.installer.label}
+            </span>
+            <span className="font-mono text-[9px] tracking-[0.04em] text-text-3">
+              no disponible
+            </span>
+          </div>
         )}
-        <MonoLabel className="text-[9px] tracking-[0.08em]">{size}</MonoLabel>
+
+        <div
+          className={cn(
+            "flex items-center justify-between gap-3 border-t px-5 py-2.5",
+            selected ? "border-accent/20" : "border-border",
+          )}
+        >
+          {downloadUrl ? (
+            <a
+              href={downloadUrl}
+              className="inline-flex items-center gap-1.5 text-caption font-medium text-text-2 transition-colors duration-150 hover:text-accent-text"
+            >
+              ZIP portable
+              <Icon name="download" size={11} />
+            </a>
+          ) : (
+            <a
+              href={fallbackUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1.5 text-caption font-semibold text-text-2 transition-colors duration-150 hover:text-text"
+            >
+              Ver releases
+              <Icon name="external" size={11} />
+            </a>
+          )}
+          <MonoLabel className="text-[9px] tracking-[0.08em]">
+            {size}
+          </MonoLabel>
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,14 @@ export type AssetKey =
   | "macos-aarch64"
   | "linux-x86_64";
 
+export type InstallerKind = "msi" | "dmg" | "deb";
+
+export type Installer = {
+  kind: InstallerKind;
+  format: string;
+  label: string;
+};
+
 export type Asset = {
   key: AssetKey;
   file: string;
@@ -10,6 +18,7 @@ export type Asset = {
   platform: string;
   arch: string;
   short: string;
+  installer: Installer;
 };
 
 export const ASSET_KEYS: AssetKey[] = [
@@ -26,6 +35,11 @@ export const ASSETS: Record<AssetKey, Asset> = {
     platform: "10 / 11",
     arch: "x86_64",
     short: "Windows x86_64",
+    installer: {
+      kind: "msi",
+      format: "MSI",
+      label: "Instalador MSI",
+    },
   },
   "macos-aarch64": {
     key: "macos-aarch64",
@@ -34,6 +48,11 @@ export const ASSETS: Record<AssetKey, Asset> = {
     platform: "12+",
     arch: "Apple Silicon",
     short: "macOS Apple Silicon",
+    installer: {
+      kind: "dmg",
+      format: "DMG",
+      label: "Instalador DMG",
+    },
   },
   "linux-x86_64": {
     key: "linux-x86_64",
@@ -42,10 +61,25 @@ export const ASSETS: Record<AssetKey, Asset> = {
     platform: "x86_64",
     arch: "glibc",
     short: "Linux x86_64",
+    installer: {
+      kind: "deb",
+      format: "DEB",
+      label: "Instalador DEB",
+    },
   },
 };
 
 export const CHECKSUMS_FILE = "SHA256SUMS.txt";
+export const INSTALLER_CHECKSUMS_FILE = "SHA256SUMS-installers.txt";
+
+/**
+ * Installer assets keep the version in their file name, so they are matched by
+ * extension instead of an exact name. Each format belongs to one platform, and
+ * this still works if a future release switches to version-free names.
+ */
+export function isInstallerFor(key: AssetKey, file: string): boolean {
+  return file.toLowerCase().endsWith(`.${ASSETS[key].installer.kind}`);
+}
 
 export type DetectedOs =
   | "windows"

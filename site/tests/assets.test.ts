@@ -18,6 +18,13 @@ describe("release assets", () => {
     expect(workflow).toContain(CHECKSUMS_FILE);
   });
 
+  it("publishes the native installers with their own checksums", () => {
+    expect(workflow).toContain("dist/installers/*.deb");
+    expect(workflow).toContain("dist/installers/*.dmg");
+    expect(workflow).toContain("dist/installers/*.msi");
+    expect(workflow).toContain("SHA256SUMS-installers.txt");
+  });
+
   it("creates the ZIPs from the built binaries", () => {
     expect(workflow).toMatch(/zip -j/);
     expect(workflow).toMatch(/binary-linux/);

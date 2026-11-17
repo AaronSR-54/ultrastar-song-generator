@@ -27,7 +27,11 @@ export default async function Page() {
     image: `${siteUrl()}/og.png`,
     downloadUrl:
       release.status === "available"
-        ? (release.release.assets[0]?.url ?? RELEASES_URL)
+        ? (release.release.installers.find(
+            (installer) => installer.key === "windows-x86_64",
+          )?.url ??
+          release.release.assets[0]?.url ??
+          RELEASES_URL)
         : RELEASES_URL,
     softwareVersion:
       release.status === "available"
@@ -143,9 +147,9 @@ export default async function Page() {
         lead="Windows, macOS Apple Silicon y Linux x86_64. La detección cambia la recomendación, no esconde las otras descargas."
         meta={
           <>
-            ZIP
+            Instalador + ZIP
             <br />
-            sin instalador
+            por sistema
           </>
         }
       >

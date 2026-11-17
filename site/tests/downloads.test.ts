@@ -1,9 +1,32 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getLatestRelease } from "@/lib/downloads";
-import { ASSETS } from "@/lib/platforms";
+import {
+  ASSETS,
+  INSTALLER_CHECKSUMS_FILE,
+  type AssetKey,
+} from "@/lib/platforms";
 
-function release(extra: string[] = [], sizes = 12_000_000) {
+// Installer names keep the product version, unlike the stable ZIP names.
+const INSTALLERS: Record<AssetKey, string> = {
+  "windows-x86_64": "UltraStar-Song-Generator-0.1.0-windows-x64.msi",
+  "macos-aarch64": "UltraStar-Song-Generator-0.1.0-macos-arm64.dmg",
+  "linux-x86_64": "ultrastar-song-generator_0.1.0_amd64.deb",
+};
+
+function release({
+  extra = [],
+  sizes = 12_000_000,
+  installers = true,
+}: {
+  extra?: string[];
+  sizes?: number;
+  installers?: boolean;
+} = {}) {
+  const native = installers
+    ? Object.values(INSTALLERS).map((name) => ({ name, size: 7_500_000 }))
+    : [];
+
   return {
     ok: true,
     json: async () => ({
@@ -14,6 +37,7 @@ function release(extra: string[] = [], sizes = 12_000_000) {
           name: asset.file,
           size: sizes,
         })),
+        ...native,
         ...extra.map((name) => ({ name, size: 1200 })),
       ],
     }),
@@ -25,8 +49,11 @@ afterEach(() => {
 });
 
 describe("getLatestRelease", () => {
-  it("returns the three stable asset URLs when the release is complete", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(release(["SHA256SUMS.txt"])));
+  it("returns the three stable ZIP URLs when the release is complete", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(release({ extra: ["SHA256SUMS.txt"] })),
+    );
 
     const state = await getLatestRelease();
 
@@ -35,7 +62,9 @@ describe("getLatestRelease", () => {
 
     expect(state.release.version).toBe("v0.1.0");
     expect(state.release.assets).toHaveLength(3);
-    expect(state.release.checksumsUrl).toContain("/latest/download/SHA256SUMS.txt");
+    expect(state.release.checksumsUrl).toContain(
+      "/latest/download/SHA256SUMS.txt",
+    );
     for (const asset of state.release.assets) {
       expect(asset.url).toBe(
         `https://github.com/AaronSR-54/ultrastar-song-generator/releases/latest/download/${ASSETS[asset.key].file}`,
@@ -44,7 +73,40 @@ describe("getLatestRelease", () => {
     }
   });
 
-  it("keeps the checksum link optional", async () => {
+  it("matches the native installers even when their names carry the version", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(release()));
+
+    const state = await getLatestRelease();
+
+    expect(state.status).toBe("available");
+    if (state.status !== "available") return;
+
+    expect(state.release.installers).toHaveLength(3);
+    for (const installer of state.release.installers) {
+      expect(installer.url).toBe(
+        `https://github.com/AaronSR-54/ultrastar-song-generator/releases/latest/download/${INSTALLERS[installer.key]}`,
+      );
+      expect(installer.size).toBe(7_500_000);
+    }
+  });
+
+  it("exposes the installer checksum file when the release publishes it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(release({ extra: [INSTALLER_CHECKSUMS_FILE] })),
+    );
+
+    const state = await getLatestRelease();
+
+    expect(state.status).toBe("available");
+    if (state.status === "available") {
+      expect(state.release.installerChecksumsUrl).toContain(
+        `/latest/download/${INSTALLER_CHECKSUMS_FILE}`,
+      );
+    }
+  });
+
+  it("keeps the checksum links optional", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(release()));
 
     const state = await getLatestRelease();
@@ -52,6 +114,22 @@ describe("getLatestRelease", () => {
     expect(state.status).toBe("available");
     if (state.status === "available") {
       expect(state.release.checksumsUrl).toBeNull();
+      expect(state.release.installerChecksumsUrl).toBeNull();
+    }
+  });
+
+  it("still offers the ZIPs when a release has no installers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(release({ installers: false })),
+    );
+
+    const state = await getLatestRelease();
+
+    expect(state.status).toBe("available");
+    if (state.status === "available") {
+      expect(state.release.assets).toHaveLength(3);
+      expect(state.release.installers).toEqual([]);
     }
   });
 

@@ -4,7 +4,7 @@ const entries = [
   {
     question: "¿Funciona en mi Mac?",
     answer:
-      "Hay binario para macOS 12 o superior con Apple Silicon (M1 en adelante). En un Mac Intel no hay ZIP: el detector te lo dice y la tarjeta sigue visible con la opción de compilar con Rust 1.89+.",
+      "Hay binario para macOS 12 o superior con Apple Silicon (M1 en adelante). En un Mac Intel no hay ZIP ni DMG: el detector te lo dice y la tarjeta sigue visible con la opción de compilar con Rust 1.89+.",
   },
   {
     question: "Windows lo bloquea o macOS no lo abre.",

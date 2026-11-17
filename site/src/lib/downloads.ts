@@ -2,6 +2,8 @@ import {
   ASSET_KEYS,
   ASSETS,
   CHECKSUMS_FILE,
+  INSTALLER_CHECKSUMS_FILE,
+  isInstallerFor,
 } from "@/lib/platforms";
 import {
   LATEST_DOWNLOAD,
@@ -29,6 +31,9 @@ function parseRelease(data: GithubRelease): ReleaseState {
   const names = new Map(
     (data.assets ?? []).map((asset) => [asset.name, asset.size ?? 0]),
   );
+  const assetNames = [...names.keys()].filter(
+    (name): name is string => Boolean(name),
+  );
 
   const missing = ASSET_KEYS.some((key) => !names.has(ASSETS[key].file));
   if (missing) {
@@ -41,14 +46,25 @@ function parseRelease(data: GithubRelease): ReleaseState {
     size: names.get(ASSETS[key].file) ?? 0,
   }));
 
+  const installers = ASSET_KEYS.flatMap((key) => {
+    const file = assetNames.find((name) => isInstallerFor(key, name));
+    return file
+      ? [{ key, url: assetUrl(file), size: names.get(file) ?? 0 }]
+      : [];
+  });
+
   return {
     status: "available",
     release: {
       version: data.tag_name ?? "latest",
       publishedAt: data.published_at ?? "",
       assets,
+      installers,
       checksumsUrl: names.has(CHECKSUMS_FILE)
         ? assetUrl(CHECKSUMS_FILE)
+        : null,
+      installerChecksumsUrl: names.has(INSTALLER_CHECKSUMS_FILE)
+        ? assetUrl(INSTALLER_CHECKSUMS_FILE)
         : null,
     },
   };

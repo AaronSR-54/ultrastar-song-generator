@@ -17,7 +17,9 @@ export type Release = {
   version: string;
   publishedAt: string;
   assets: ReleaseAsset[];
+  installers: ReleaseAsset[];
   checksumsUrl: string | null;
+  installerChecksumsUrl: string | null;
 };
 
 export type ReleaseState =
@@ -25,8 +27,8 @@ export type ReleaseState =
   | { status: "missing-assets"; version: string | null }
   | { status: "unavailable" };
 
-export function formatSize(bytes: number): string {
-  if (!bytes) return "ZIP";
+export function formatSize(bytes: number, empty = "—"): string {
+  if (!bytes) return empty;
   const mb = bytes / (1024 * 1024);
   return `${mb.toFixed(1).replace(".", ",")} MB`;
 }
