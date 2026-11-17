@@ -74,11 +74,23 @@
       <!-- KeyPath is the file itself. ICE38/ICE64 complain about per-user
            components without an HKCU key path; the shortcut below creates the
            HKCU entries and package.ps1 suppresses both ICEs on purpose. -->
-      <Component Id="MainExecutable" Guid="*">
+      <!-- Fixed GUID on purpose: a component with both a file and a registry
+           key path cannot use an auto-generated one (WIX0230), and the key
+           path must stay the same across upgrades. -->
+      <Component Id="MainExecutable" Guid="F97E0CC8-AFBA-4158-A724-95D926FE476E">
         <File Id="DesktopExecutable"
               Source="$(var.BinarySource)"
-              Name="usdx-desktop.exe"
-              KeyPath="yes" />
+              Name="usdx-desktop.exe" />
+        <!-- Per-user components must be keyed by HKCU, not by a file or a
+             directory (ICE38/ICE43). The value doubles as the record of where
+             the app lives, and MSI removes it on uninstall. -->
+        <RegistryValue Id="InstallLocationKey"
+                       Root="HKCU"
+                       Key="Software\AaronSR\UltraStar Song Generator"
+                       Name="InstallLocation"
+                       Type="string"
+                       Value="[INSTALLFOLDER]"
+                       KeyPath="yes" />
         <Shortcut Id="StartMenuShortcut"
                   Directory="AppShortcutFolder"
                   Name="UltraStar Song Generator"
