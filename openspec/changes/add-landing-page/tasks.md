@@ -43,7 +43,7 @@
 ## 6. CI del sitio
 
 - [x] 6.1 Añadir `.github/workflows/site.yml` con Node 22, cache npm, `npm ci`, lint, typecheck, test y build, filtrado por `paths` de `site/**`. Verificar con `actionlint` o `npx yaml-lint` que el YAML es válido y que un cambio solo en `crates/` no dispara el workflow.
-- [ ] 6.2 Comprobar en un PR de prueba que el workflow falla al introducir un error de tipos en `site/` y vuelve a verde al corregirlo.
+- [x] 6.2 Comprobar en un PR de prueba que el workflow falla al introducir un error de tipos en `site/` y vuelve a verde al corregirlo.
 
 ## 7. Release automática con assets
 
@@ -54,7 +54,7 @@
 
 ## 8. Despliegue y verificación final
 
-- [ ] 8.1 Importar el repositorio en Vercel con `site/` como root, Node 22, `npm ci` y sin variables obligatorias; documentar el `GITHUB_TOKEN` opcional. Verificar que el despliegue de producción responde 200 en `/`.
+- [x] 8.1 Importar el repositorio en Vercel con `site/` como root, Node 22, `npm ci` y sin variables obligatorias; documentar el `GITHUB_TOKEN` opcional. Verificar que el despliegue de producción responde 200 en `/`.
 - [x] 8.2 Comprobar la detección en Windows, macOS Apple Silicon y Linux (real o emulación de user agent): la CTA coincide con el asset y el selector manual permite cambiar. Verificar también iOS/Android y una arquitectura sin binario.
 - [ ] 8.3 Añadir al `README.md` una sección de descarga que enlace a la landing y al archivo de sumas, y verificar que los enlaces resuelven en producción.
 - [x] 8.4 Ejecutar la verificación completa: `cd site && npm ci && npm run lint && npm run typecheck && npm run test && npm run build`, `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` y `openspec validate add-landing-page --strict`. Verificar que todo termina en verde.
