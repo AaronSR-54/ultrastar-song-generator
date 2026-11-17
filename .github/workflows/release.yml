@@ -5,31 +5,17 @@ on:
   push:
     tags: ["v*"]
 
+# Read-only by default: only the publish job needs to write to the repository.
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows
-            os: windows-latest
-            artifact: usdx-desktop-windows-x86_64
-            binary: target/release/usdx-desktop.exe
-          - name: macOS
-            os: macos-latest
-            artifact: usdx-desktop-macos-aarch64
-            binary: target/release/usdx-desktop
-          - name: Linux
-            os: ubuntu-latest
-            artifact: usdx-desktop-linux-x86_64
-            binary: target/release/usdx-desktop
-    env:
-      CARGO_TERM_COLOR: always
+  linux:
+    name: Linux (deb)
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -37,22 +23,219 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: release-${{ matrix.os }}
+          key: release-linux
 
-      - name: Prepare ONNX Runtime target dirs (Windows)
-        if: runner.os == 'Windows'
-        run: New-Item -ItemType Directory -Force target\release\build\examples,target\release\build\deps
-
-      - name: Prepare ONNX Runtime target dirs (Unix)
-        if: runner.os != 'Windows'
+      - name: Prepare ONNX Runtime target dirs
         run: mkdir -p target/release/build/examples target/release/build/deps
 
-      - name: Install Linux audio and windowing headers
-        if: runner.os == 'Linux'
+      - name: Install build and packaging tools
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            pkg-config libasound2-dev libxkbcommon-dev libwayland-dev libgtk-3-dev
+            pkg-config libasound2-dev libxkbcommon-dev libwayland-dev libgtk-3-dev \
+            dpkg-dev desktop-file-utils
+
+      - name: Build release
+        run: cargo build --release -p usdx-desktop
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          target/release/usdx-desktop --selftest | tee selftest.log
+          grep -q "selftest ok" selftest.log
+
+      - name: Resolve version
+        run: |
+          set -euo pipefail
+          eval "$(packaging/version.sh)"
+          {
+            echo "VERSION_DISPLAY=$VERSION_DISPLAY"
+            echo "VERSION_NUMERIC=$VERSION_NUMERIC"
+          } >>"$GITHUB_ENV"
+
+      - name: Build Debian package
+        run: packaging/linux/package.sh
+
+      - name: Check artifact version and content
+        run: |
+          set -euo pipefail
+          deb="$(ls dist/*.deb)"
+          [[ "$(basename "$deb")" == "ultrastar-song-generator_${VERSION_DISPLAY}_amd64.deb" ]]
+          declared="$(dpkg-deb -f "$deb" Version)"
+          [[ "$declared" == "$VERSION_DISPLAY" ]] || {
+            echo "version mismatch: workspace $VERSION_DISPLAY, package $declared" >&2
+            exit 1
+          }
+          [[ "$(dpkg-deb -f "$deb" Architecture)" == "amd64" ]]
+
+          depends="$(dpkg-deb -f "$deb" Depends)"
+          recommends="$(dpkg-deb -f "$deb" Recommends)"
+          [[ "$depends" == *libxkbcommon0* ]]
+          [[ "$recommends" == *ffmpeg* ]]
+          [[ "$recommends" == *yt-dlp* ]]
+
+          listing="$(dpkg-deb -c "$deb")"
+          if grep -Ei 'ffmpeg|ffprobe|yt-dlp|/(node|deno)$|\.onnx$' <<<"$listing"; then
+            echo "package bundles an external tool or model weights" >&2
+            exit 1
+          fi
+
+      - name: Install, run and purge the package
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends ./dist/*.deb
+          usdx-desktop --selftest | tee installed-selftest.log
+          grep -q "selftest ok" installed-selftest.log
+
+          installed="$(dpkg -L ultrastar-song-generator)"
+          grep -qxF '/usr/bin/usdx-desktop' <<<"$installed"
+          grep -qxF '/usr/share/applications/ultrastar-song-generator.desktop' <<<"$installed"
+
+          sudo apt-get purge -y ultrastar-song-generator
+          if [[ -e /usr/bin/usdx-desktop ]]; then
+            echo "uninstall left the executable behind" >&2
+            exit 1
+          fi
+
+      - name: Verify in a clean Ubuntu container
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/dist:/dist:ro" ubuntu:24.04 bash -euo pipefail -c '
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends /dist/*.deb
+            usdx-desktop --selftest | tee /tmp/selftest.log
+            grep -q "selftest ok" /tmp/selftest.log
+            mkdir -p "$HOME/.local/share/ultrastar-song-generator/projects/demo"
+            echo "keep" >"$HOME/.local/share/ultrastar-song-generator/projects/demo/project.usdx"
+            installed="$(dpkg -L ultrastar-song-generator)"
+            grep -qxF /usr/bin/usdx-desktop <<<"$installed"
+            DEBIAN_FRONTEND=noninteractive apt-get purge -y ultrastar-song-generator
+            test ! -e /usr/bin/usdx-desktop
+            test -f "$HOME/.local/share/ultrastar-song-generator/projects/demo/project.usdx"
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-linux
+          path: dist/*.deb
+          if-no-files-found: error
+
+      - name: Stage the Linux binary
+        run: |
+          mkdir -p release
+          cp target/release/usdx-desktop release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-linux
+          path: release/usdx-desktop
+          if-no-files-found: error
+
+  macos:
+    name: macOS (dmg)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-macos
+
+      - name: Prepare ONNX Runtime target dirs
+        run: mkdir -p target/release/build/examples target/release/build/deps
+
+      - name: Build release
+        run: cargo build --release -p usdx-desktop
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          target/release/usdx-desktop --selftest | tee selftest.log
+          grep -q "selftest ok" selftest.log
+
+      - name: Resolve version
+        run: |
+          set -euo pipefail
+          eval "$(packaging/version.sh)"
+          {
+            echo "VERSION_DISPLAY=$VERSION_DISPLAY"
+            echo "VERSION_NUMERIC=$VERSION_NUMERIC"
+          } >>"$GITHUB_ENV"
+
+      - name: Build disk image
+        run: packaging/macos/package.sh
+
+      - name: Check artifact version and content
+        run: |
+          set -euo pipefail
+          dmg="$(ls dist/*.dmg)"
+          [[ "$(basename "$dmg")" == "UltraStar-Song-Generator-${VERSION_DISPLAY}-macos-arm64.dmg" ]]
+
+      - name: Mount, inspect, run and unmount the disk image
+        run: |
+          set -euo pipefail
+          dmg="$(ls dist/*.dmg)"
+          mount="$RUNNER_TEMP/dmg"
+          mkdir -p "$mount"
+          hdiutil attach "$dmg" -mountpoint "$mount" -nobrowse -quiet
+          trap 'hdiutil detach "$mount" -quiet || true' EXIT
+
+          app="$mount/UltraStar Song Generator.app"
+          [[ -d "$app" ]]
+          [[ -L "$mount/Applications" ]]
+          plutil -lint "$app/Contents/Info.plist"
+
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")"
+          [[ "$bundle_id" == "com.aaronsr.ultrastar-song-generator" ]]
+          short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
+          [[ "$short_version" == "$VERSION_DISPLAY" ]] || {
+            echo "version mismatch: workspace $VERSION_DISPLAY, bundle $short_version" >&2
+            exit 1
+          }
+          [[ -f "$app/Contents/Resources/AppIcon.icns" ]]
+
+          if [[ -n "$(find "$app" \( -iname 'ffmpeg*' -o -iname 'ffprobe*' -o -iname 'yt-dlp*' \
+            -o -iname 'node' -o -iname 'deno' -o -iname '*.onnx' \) -print -quit)" ]]; then
+            echo "bundle ships an external tool or model weights" >&2
+            exit 1
+          fi
+
+          "$app/Contents/MacOS/usdx-desktop" --selftest | tee installed-selftest.log
+          grep -q "selftest ok" installed-selftest.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-macos
+          path: dist/*.dmg
+          if-no-files-found: error
+
+      - name: Stage the macOS binary
+        run: |
+          mkdir -p release
+          cp target/release/usdx-desktop release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-macos
+          path: release/usdx-desktop
+          if-no-files-found: error
+
+  windows:
+    name: Windows (msi)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-windows
+
+      - name: Prepare ONNX Runtime target dirs
+        run: New-Item -ItemType Directory -Force target\release\build\examples,target\release\build\deps
 
       - name: Build release
         run: cargo build --release -p usdx-desktop
@@ -61,12 +244,202 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "${{ matrix.binary }}" --selftest | tee selftest.log
+          target/release/usdx-desktop.exe --selftest | tee selftest.log
           grep -q "selftest ok" selftest.log
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
+      - name: Resolve version
+        shell: pwsh
+        run: packaging\version.ps1 | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install WiX
+        shell: pwsh
+        run: |
+          if (-not (Get-Command wix -ErrorAction SilentlyContinue)) {
+            dotnet tool install --global wix --version 5.*
+          }
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Build MSI
+        shell: pwsh
+        run: packaging\windows\package.ps1
+
+      - name: Check artifact version and content
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = (Get-ChildItem dist\*.msi | Select-Object -First 1).FullName
+          if ((Split-Path -Leaf $msi) -ne "UltraStar-Song-Generator-$env:VERSION_DISPLAY-windows-x64.msi") {
+            throw "unexpected artifact name: $msi"
+          }
+
+          # Read the ProductVersion property straight from the MSI database.
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $db = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($msi, 0))
+          $view = $db.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $db, @("SELECT Value FROM Property WHERE Property = 'ProductVersion'"))
+          $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
+          $record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)
+          $declared = $record.GetType().InvokeMember('StringData', 'GetProperty', $null, $record, @(1))
+          if ($declared -ne $env:VERSION_NUMERIC) {
+            throw "version mismatch: workspace $env:VERSION_NUMERIC, package $declared"
+          }
+
+      - name: Install and inspect the MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = (Get-ChildItem dist\*.msi | Select-Object -First 1).FullName
+          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\UltraStar Song Generator'
+          $exe = Join-Path $installDir 'usdx-desktop.exe'
+
+          $installLog = Join-Path $PWD 'install.log'
+          $install = Start-Process msiexec.exe -ArgumentList @('/i', "`"$msi`"", '/qn', '/norestart', '/l*v', "`"$installLog`"") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "msiexec /i failed with exit code $($install.ExitCode)" }
+          if (Select-String -Path $installLog -SimpleMatch 'Return value 3') { throw 'install log reports a failure (Return value 3)' }
+
+          if (-not (Test-Path -LiteralPath $exe)) { throw "missing $exe" }
+
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\UltraStar Song Generator\UltraStar Song Generator.lnk'
+          if (-not (Test-Path -LiteralPath $shortcut)) { throw "missing Start Menu shortcut: $shortcut" }
+
+          $entry = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+            ForEach-Object { Get-ItemProperty $_.PSPath } |
+            Where-Object { $_.DisplayName -eq 'UltraStar Song Generator' }
+          if (-not $entry) { throw 'missing entry in Apps & Features' }
+          if ($entry.DisplayVersion -ne $env:VERSION_NUMERIC) {
+            throw "Apps & Features shows $($entry.DisplayVersion), expected $env:VERSION_NUMERIC"
+          }
+
+          $bundled = Get-ChildItem -LiteralPath $installDir -Recurse -File |
+            Where-Object { $_.Name -match '^(ffmpeg|ffprobe|yt-dlp|node|deno)' -or $_.Extension -in '.onnx', '.bin' }
+          if ($bundled) { throw "installer ships external tools or model weights: $($bundled.Name -join ', ')" }
+
+      # Git Bash is the shell the smoke test already uses: it captures the
+      # stdout of the windows-subsystem executable reliably.
+      - name: Run the installed executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe="$LOCALAPPDATA/Programs/UltraStar Song Generator/usdx-desktop.exe"
+          "$exe" --selftest | tee installed-selftest.log
+          grep -q "selftest ok" installed-selftest.log
+
+      - name: Uninstall the MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = (Get-ChildItem dist\*.msi | Select-Object -First 1).FullName
+          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\UltraStar Song Generator'
+
+          $uninstallLog = Join-Path $PWD 'uninstall.log'
+          $uninstall = Start-Process msiexec.exe -ArgumentList @('/x', "`"$msi`"", '/qn', '/norestart', '/l*v', "`"$uninstallLog`"") -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw "msiexec /x failed with exit code $($uninstall.ExitCode)" }
+          if (Select-String -Path $uninstallLog -SimpleMatch 'Return value 3') { throw 'uninstall log reports a failure (Return value 3)' }
+
+          $leftovers = @(Get-ChildItem -LiteralPath $installDir -Recurse -File -ErrorAction SilentlyContinue)
+          if ($leftovers.Count -ne 0) { throw "uninstall left files behind: $($leftovers.Name -join ', ')" }
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.binary }}
+          name: installer-windows
+          path: dist/*.msi
           if-no-files-found: error
+
+      - name: Stage the Windows binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item target\release\usdx-desktop.exe release\
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-windows
+          path: release/usdx-desktop.exe
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    # Asset names are part of the landing contract (site/src/lib/platforms.ts):
+    # usdx-desktop-<os>-<arch>.zip plus SHA256SUMS.txt. They stay version-free
+    # so releases/latest/download/<asset> is stable across versions.
+    needs: [linux, macos, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-linux
+          path: dist/linux
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-macos
+          path: dist/macos
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-windows
+          path: dist/windows
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer-linux
+          path: dist/installers
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer-macos
+          path: dist/installers
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer-windows
+          path: dist/installers
+
+      - name: Build the stable ZIP assets
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          chmod +x dist/linux/usdx-desktop dist/macos/usdx-desktop
+          (cd dist/linux && zip -j -q "$GITHUB_WORKSPACE/out/usdx-desktop-linux-x86_64.zip" usdx-desktop)
+          (cd dist/macos && zip -j -q "$GITHUB_WORKSPACE/out/usdx-desktop-macos-aarch64.zip" usdx-desktop)
+          (cd dist/windows && zip -j -q "$GITHUB_WORKSPACE/out/usdx-desktop-windows-x86_64.zip" usdx-desktop.exe)
+          ls -lh out
+
+      - name: Generate and verify checksums
+        run: |
+          set -euo pipefail
+          cd out
+          sha256sum usdx-desktop-*.zip >SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+          for zipfile in usdx-desktop-*.zip; do
+            unzip -q "$zipfile" -d "check-$zipfile"
+          done
+          test -x check-usdx-desktop-linux-x86_64.zip/usdx-desktop
+          test -x check-usdx-desktop-macos-aarch64.zip/usdx-desktop
+          test -f check-usdx-desktop-windows-x86_64.zip/usdx-desktop.exe
+          cat SHA256SUMS.txt
+
+      - name: Generate installer checksums
+        run: |
+          set -euo pipefail
+          cd dist/installers
+          sha256sum -- *.deb *.dmg *.msi >"$GITHUB_WORKSPACE/out/SHA256SUMS-installers.txt"
+          sha256sum -c "$GITHUB_WORKSPACE/out/SHA256SUMS-installers.txt"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/usdx-desktop-windows-x86_64.zip
+            out/usdx-desktop-macos-aarch64.zip
+            out/usdx-desktop-linux-x86_64.zip
+            out/SHA256SUMS.txt
+            out/SHA256SUMS-installers.txt
+            dist/installers/*.deb
+            dist/installers/*.dmg
+            dist/installers/*.msi
+          generate_release_notes: true
+          fail_on_unmatched_files: true

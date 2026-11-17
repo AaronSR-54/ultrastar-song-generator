@@ -10,12 +10,21 @@
 /projects/
 /work/
 /output/
+/dist/
 *.part
 
 # Entornos y secretos
 .env
 .env.*
 *.local
+
+# Landing (Next.js)
+/site/node_modules/
+/site/.next/
+/site/.vercel/
+/site/out/
+/site/coverage/
+/site/*.tsbuildinfo
 
 # Sistema y editores
 .DS_Store
