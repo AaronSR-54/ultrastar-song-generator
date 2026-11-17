@@ -23,8 +23,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
   <rect width="1200" height="630" fill="url(#dots)" />
   <rect x="32" y="32" width="1136" height="566" fill="none" stroke="#2A2C36" />
 
-  <rect x="80" y="64" width="42" height="42" fill="#4F8DFF" fill-opacity="0.15" stroke="#4F8DFF" stroke-opacity="0.45" />
-  <g transform="translate(88 72) scale(1.0833)">
+  <g transform="translate(80 66) scale(1.4)">
     <path d="${feather}" fill="#9DC0FF" fill-opacity="0.55" />
     <circle cx="12" cy="6.6" r="2.9" fill="none" stroke="#9DC0FF" stroke-width="1.7" />
     <g stroke="#9DC0FF" stroke-width="0.85" stroke-linecap="round">

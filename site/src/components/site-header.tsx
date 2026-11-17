@@ -1,4 +1,4 @@
-import { BrandTile } from "@/components/brand-mark";
+import { BrandLogo } from "@/components/brand-mark";
 import { ButtonLink } from "@/components/ui/button";
 import { HeaderScrollState } from "@/components/header-scroll-state";
 import { Icon } from "@/components/ui/icon";
@@ -23,7 +23,7 @@ export function SiteHeader() {
           className="flex min-w-0 items-center gap-3"
           aria-label="UltraStar Song Generator, volver arriba"
         >
-          <BrandTile size={32} markSize={19} />
+          <BrandLogo size={30} />
           <span className="flex min-w-0 flex-col leading-none">
             <span className="truncate text-[13px] font-semibold tracking-[-0.01em]">
               <span className="sm:hidden">UltraStar</span>

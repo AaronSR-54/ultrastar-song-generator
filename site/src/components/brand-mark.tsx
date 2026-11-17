@@ -92,25 +92,19 @@ export function BrandMark({
   );
 }
 
-/** The 48 px square tile the app paints on its home screen, at landing scale. */
-export function BrandTile({
-  size = 32,
-  markSize = 19,
+/** The compact mark on its own, with no tile behind it. */
+export function BrandLogo({
+  size = 30,
   className,
 }: {
   size?: number;
-  markSize?: number;
   className?: string;
 }) {
   return (
-    <span
-      style={{ width: size, height: size }}
-      className={cn(
-        "grid shrink-0 place-items-center border border-accent/30 bg-accent/15 text-accent-text",
-        className,
-      )}
-    >
-      <BrandMark size={markSize} variant="compact" />
-    </span>
+    <BrandMark
+      size={size}
+      variant="compact"
+      className={cn("text-accent-text", className)}
+    />
   );
 }
