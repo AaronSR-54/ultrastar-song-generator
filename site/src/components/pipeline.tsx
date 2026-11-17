@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { Icon, type IconName } from "@/components/ui/icon";
 import { MonoLabel } from "@/components/ui/mono-label";
 
@@ -57,6 +59,24 @@ const stages: Stage[] = [
   },
 ];
 
+const shots = [
+  {
+    src: "/app/metadata.png",
+    label: "Revisa los datos",
+    alt: "Pantalla real de la app para revisar título, artista, idioma, año, género y creador antes de procesar.",
+  },
+  {
+    src: "/app/lyrics.png",
+    label: "Revisa la letra",
+    alt: "Pantalla real de la app con la letra encontrada para Yesterday, lista para corregir antes de colocar las notas.",
+  },
+  {
+    src: "/app/done.png",
+    label: "Canción lista",
+    alt: "Pantalla real de la app al terminar: la canción está lista y copiada a la carpeta de destino.",
+  },
+];
+
 export function Pipeline() {
   return (
     <div>
@@ -110,6 +130,36 @@ className="absolute top-0 left-0 size-[9px] -translate-y-1/2 border border-borde
         <p className="font-mono text-[10px] tracking-[0.06em] text-text-3">
           Cada salida queda en la carpeta del proyecto.
         </p>
+      </div>
+
+      <div className="mt-10 border-t border-border pt-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+          <MonoLabel className="text-[10px] tracking-[0.16em]">
+            Capturas reales
+          </MonoLabel>
+          <p className="text-caption text-text-3">
+            Las mismas pantallas que verás al procesar una canción.
+          </p>
+        </div>
+        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+          {shots.map((shot) => (
+            <figure key={shot.src}>
+              <div className="border border-border bg-surface p-1">
+                <Image
+                  src={shot.src}
+                  alt={shot.alt}
+                  width={1040}
+                  height={700}
+                  sizes="(min-width: 1024px) 350px, (min-width: 640px) 33vw, 100vw"
+                  className="block h-auto w-full"
+                />
+              </div>
+              <figcaption className="mt-2 font-mono text-[9px] tracking-[0.1em] text-text-3 uppercase">
+                {shot.label}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </div>
     </div>
   );

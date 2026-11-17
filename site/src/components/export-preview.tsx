@@ -2,37 +2,39 @@ import { Icon } from "@/components/ui/icon";
 import { MonoLabel } from "@/components/ui/mono-label";
 
 const tree = [
-  { name: "La ciudad enciende.txt", kind: "letra + notas", file: true },
-  { name: "audio.mp3", kind: "pista", file: true },
-  { name: "cover.jpg", kind: "carátula", file: true },
-  { name: "video.mp4", kind: "vídeo", file: true },
+  { name: "The Beatles - Yesterday.txt", kind: "letra + notas", size: "3,1 KB" },
+  { name: "audio.mp3", kind: "pista", size: "3,8 MB" },
+  { name: "cover.jpg", kind: "carátula", size: "47 KB" },
+  { name: "video.mp4", kind: "vídeo", size: "1,0 MB" },
 ];
 
 const header = [
-  ["#TITLE", "La ciudad enciende"],
-  ["#ARTIST", "Demo local"],
-  ["#LANGUAGE", "Spanish"],
+  ["#TITLE", "Yesterday"],
+  ["#ARTIST", "The Beatles"],
+  ["#LANGUAGE", "en"],
+  ["#YEAR", "2009"],
   ["#MP3", "audio.mp3"],
   ["#COVER", "cover.jpg"],
   ["#VIDEO", "video.mp4"],
-  ["#BPM", "238,4"],
-  ["#GAP", "1200"],
+  ["#BPM", "382,8125"],
+  ["#GAP", "116"],
 ];
 
 const notes = [
-  [0, 4, 8, "La"],
-  [4, 4, 10, "ciu"],
-  [8, 6, 12, "dad"],
-  [14, 4, 10, "se"],
-  [18, 5, 8, "en"],
-  [23, 7, 11, "cien"],
-  [30, 4, 9, "de"],
+  [135, 7, -7, "Yes"],
+  [142, 2, -7, "ter"],
+  [144, 31, -7, "day,"],
+  [213, 8, -4, "all"],
+  [221, 7, -1, "my"],
+  [228, 9, 1, "trou"],
+  [237, 8, 2, "bles"],
+  [245, 8, 4, "seemed"],
 ];
 
 export function ExportPreview() {
   return (
     <div>
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
         <div className="min-w-0 border border-border bg-surface/50">
           <div className="flex h-10 items-center justify-between border-b border-border px-4">
             <MonoLabel className="text-[9px] tracking-[0.14em]">
@@ -51,7 +53,7 @@ export function ExportPreview() {
                 size={12}
                 className="mr-2 inline align-[-1px] text-text-3"
               />
-              Demo local - La ciudad enciende/
+              The Beatles - Yesterday/
             </p>
             {tree.map((item, index) => (
               <div
@@ -64,8 +66,8 @@ export function ExportPreview() {
                   </span>
                   {item.name}
                 </span>
-                <span className="shrink-0 text-[9px] tracking-[0.06em] text-text-3 uppercase max-sm:hidden">
-                  {item.kind}
+                <span className="shrink-0 text-[9px] tracking-[0.06em] text-text-3 max-sm:hidden">
+                  {item.size}
                 </span>
               </div>
             ))}
@@ -77,21 +79,24 @@ export function ExportPreview() {
                 Destino
               </MonoLabel>
               <span className="font-mono text-[9px] text-text-3">
-                automático
+                si está instalado
               </span>
             </div>
             <div className="mt-3 flex items-start gap-2.5">
               <Icon name="check" size={13} className="mt-1 text-success" />
               <div className="min-w-0">
-                <p className="text-body font-semibold">SongDir1 detectado</p>
+                <p className="text-body font-semibold">
+                  La carpeta del juego, si existe
+                </p>
                 <p className="mt-1 truncate font-mono text-[10px] text-text-3">
                   ~/.ultrastardx/config.ini → songs/
                 </p>
               </div>
             </div>
             <p className="mt-3 max-w-[44ch] text-caption leading-[1.6] text-text-2">
-              Si el juego está en otra ruta, elige la carpeta en Ajustes y cada
-              canción se copia sola. La elección manual manda.
+              La app lee la carpeta que ya usa UltraStar Deluxe. Si el juego no
+              está o usas otra ruta, elige la carpeta en Ajustes: la elección
+              manual manda.
             </p>
           </div>
         </div>
@@ -100,7 +105,7 @@ export function ExportPreview() {
           <div className="border border-border bg-field">
             <div className="flex h-10 items-center justify-between gap-4 border-b border-border bg-surface-2 px-4">
               <MonoLabel className="min-w-0 truncate text-[9px] tracking-[0.12em]">
-                Demo local - La ciudad enciende.txt
+                The Beatles - Yesterday.txt
               </MonoLabel>
               <span className="shrink-0 font-mono text-[9px] whitespace-nowrap text-text-3">
                 UTF-8
@@ -143,9 +148,12 @@ export function ExportPreview() {
         </div>
       </div>
 
-      <p className="mt-8 border-t border-border pt-5 font-mono text-[10px] leading-[1.8] tracking-[0.02em] text-text-3">
-        #TITLE · #ARTIST · #LANGUAGE · #MP3 · #COVER · #VIDEO · #BPM · #GAP ·
-        frases con notas · E
+      <p className="mt-8 flex flex-col gap-2 border-t border-border pt-5 font-mono text-[10px] leading-[1.8] tracking-[0.02em] text-text-3 sm:flex-row sm:items-baseline sm:justify-between">
+        <span>
+          #TITLE · #ARTIST · #LANGUAGE · #YEAR · #MP3 · #COVER · #VIDEO · #BPM ·
+          #GAP · frases con notas · E
+        </span>
+        <span className="text-right">Salida real de la app</span>
       </p>
     </div>
   );

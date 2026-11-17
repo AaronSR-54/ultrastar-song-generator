@@ -1,4 +1,4 @@
-import { AppWindow } from "@/components/app-window";
+import { AppShot } from "@/components/app-shot";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { MonoLabel } from "@/components/ui/mono-label";
@@ -19,7 +19,7 @@ const specs = [
 
 export function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden">
+    <section id="top" className="relative -mt-16 overflow-hidden pt-16">
       <div className="dot-field" aria-hidden="true" />
       <div
         aria-hidden="true"
@@ -89,7 +89,13 @@ export function Hero() {
           </div>
 
           <div className="lg:col-span-7 lg:pt-14 xl:col-span-6">
-            <AppWindow />
+            <AppShot
+              src="/app/home.png"
+              alt="Ventana real de UltraStar Song Generator: la pantalla de inicio con un enlace de YouTube escrito y el botón Generar."
+              label="App / Inicio"
+              priority
+              sizes="(min-width: 1280px) 560px, (min-width: 1024px) 58vw, 100vw"
+            />
           </div>
         </div>
 

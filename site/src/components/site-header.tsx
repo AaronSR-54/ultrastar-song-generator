@@ -1,4 +1,6 @@
+import { BrandTile } from "@/components/brand-mark";
 import { ButtonLink } from "@/components/ui/button";
+import { HeaderScrollState } from "@/components/header-scroll-state";
 import { Icon } from "@/components/ui/icon";
 
 const nav = [
@@ -9,16 +11,19 @@ const nav = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-bg/95">
-      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-4 px-6 md:px-10 lg:px-12">
+    <header
+      className="site-header sticky top-0 z-50"
+      data-site-header
+      data-scrolled="false"
+    >
+      <HeaderScrollState />
+      <div className="relative z-10 mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-4 px-6 md:px-10 lg:px-12">
         <a
           href="#top"
           className="flex min-w-0 items-center gap-3"
           aria-label="UltraStar Song Generator, volver arriba"
         >
-          <span className="grid size-8 shrink-0 place-items-center border border-accent/30 bg-accent/15">
-            <Icon name="music" size={16} className="text-accent-text" />
-          </span>
+          <BrandTile size={32} markSize={19} />
           <span className="flex min-w-0 flex-col leading-none">
             <span className="truncate text-[13px] font-semibold tracking-[-0.01em]">
               <span className="sm:hidden">UltraStar</span>

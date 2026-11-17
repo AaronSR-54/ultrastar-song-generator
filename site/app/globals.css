@@ -107,6 +107,54 @@
   box-shadow: var(--app-shadow);
 }
 
+/*
+ * Header: capa de vidrio sobre el contenido.
+ * Sin JS la capa queda opaca y legible; con JS, el atributo data-scrolled
+ * apaga o enciende el vidrio sin animar el radio del desenfoque.
+ */
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: rgb(10 10 12 / 0.94);
+  box-shadow: var(--app-shadow);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+/* En el tope no hay vidrio: el header deja ver el hero. */
+html[data-js="true"] .site-header[data-scrolled="false"]::before {
+  background-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  opacity: 0;
+}
+
+/* Al desplazarse, el tinte baja para dejar pasar el contenido difuminado. */
+html[data-js="true"] .site-header[data-scrolled="true"]::before {
+  background-color: rgb(10 10 12 / 0.72);
+}
+
+/* Sin desenfoque de fondo, el tinte sube para no perder contraste. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .site-header::before {
+    background-color: rgb(10 10 12 / 0.94);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html[data-js="true"] .site-header[data-scrolled="true"]::before {
+    background-color: rgb(10 10 12 / 0.94);
+  }
+}
+
 /* Aparición al hacer scroll. Sin JS, el contenido está visible por defecto. */
 [data-js="true"] .reveal {
   opacity: 0;

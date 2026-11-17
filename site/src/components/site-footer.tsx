@@ -1,3 +1,4 @@
+import { BrandTile } from "@/components/brand-mark";
 import { Icon } from "@/components/ui/icon";
 import { MonoLabel } from "@/components/ui/mono-label";
 
@@ -26,9 +27,7 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-[1200px] px-6 py-12 md:px-10 lg:px-12">
         <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid size-8 place-items-center border border-accent/30 bg-accent/15">
-              <Icon name="music" size={16} className="text-accent-text" />
-            </span>
+            <BrandTile size={32} markSize={19} />
             <div>
               <p className="text-body font-semibold">UltraStar Song Generator</p>
               <p className="mt-1 text-caption text-text-3">
