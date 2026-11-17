@@ -39,14 +39,16 @@
     <!-- The MSVC target links the CRT dynamically, so the Visual C++
          redistributable must already be present. Look for the two DLLs the
          binary imports and fail with an actionable message instead of a
-         cryptic "entry point not found" at first launch. -->
+         cryptic "entry point not found" at first launch. The package is x64,
+         so the search must use System64Folder: SystemFolder resolves to
+         SysWOW64 in the 32-bit MSI engine and finds the wrong architecture. -->
     <Property Id="VCRUNTIME140">
-      <DirectorySearch Id="VCRuntime140Search" Path="[SystemFolder]" Depth="0">
+      <DirectorySearch Id="VCRuntime140Search" Path="[System64Folder]" Depth="0">
         <FileSearch Id="VCRuntime140FileSearch" Name="VCRUNTIME140.dll" />
       </DirectorySearch>
     </Property>
     <Property Id="VCRUNTIME140_1">
-      <DirectorySearch Id="VCRuntime140_1Search" Path="[SystemFolder]" Depth="0">
+      <DirectorySearch Id="VCRuntime140_1Search" Path="[System64Folder]" Depth="0">
         <FileSearch Id="VCRuntime140_1FileSearch" Name="VCRUNTIME140_1.dll" />
       </DirectorySearch>
     </Property>

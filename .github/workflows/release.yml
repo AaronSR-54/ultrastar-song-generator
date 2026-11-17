@@ -292,8 +292,17 @@ jobs:
           $exe = Join-Path $installDir 'usdx-desktop.exe'
 
           $installLog = Join-Path $PWD 'install.log'
+          Write-Output "VCRUNTIME140:   $(Test-Path "$env:SystemRoot\System32\VCRUNTIME140.dll")"
+          Write-Output "VCRUNTIME140_1: $(Test-Path "$env:SystemRoot\System32\VCRUNTIME140_1.dll")"
+
           $install = Start-Process msiexec.exe -ArgumentList @('/i', "`"$msi`"", '/qn', '/norestart', '/l*v', "`"$installLog`"") -Wait -PassThru
-          if ($install.ExitCode -ne 0) { throw "msiexec /i failed with exit code $($install.ExitCode)" }
+          if ($install.ExitCode -ne 0) {
+            if (Test-Path -LiteralPath $installLog) {
+              Select-String -Path $installLog -Pattern 'Error|LaunchCondition|Return value 3|Note: 1: 2262|Product:' |
+                Select-Object -Last 40 | ForEach-Object { Write-Output $_.Line }
+            }
+            throw "msiexec /i failed with exit code $($install.ExitCode)"
+          }
           if (Select-String -Path $installLog -SimpleMatch 'Return value 3') { throw 'install log reports a failure (Return value 3)' }
 
           if (-not (Test-Path -LiteralPath $exe)) { throw "missing $exe" }
@@ -356,6 +365,16 @@ jobs:
 
           $leftovers = @(Get-ChildItem -LiteralPath $installDir -Recurse -File -ErrorAction SilentlyContinue)
           if ($leftovers.Count -ne 0) { throw "uninstall left files behind: $($leftovers.Name -join ', ')" }
+
+      - name: Upload MSI logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi-logs
+          path: |
+            install.log
+            uninstall.log
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:
@@ -449,8 +468,20 @@ jobs:
           sha256sum -- *.deb *.dmg *.msi >"$GITHUB_WORKSPACE/out/SHA256SUMS-installers.txt"
           sha256sum -c "$GITHUB_WORKSPACE/out/SHA256SUMS-installers.txt"
 
+      # The release body has to carry the installation guide (SmartScreen,
+      # Gatekeeper, checksums, uninstall) next to the generated changelog.
+      - name: Compose the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            --field tag_name="$GITHUB_REF_NAME" --jq .body >changes.md
+          { cat docs/install.md; printf '\n---\n\n'; cat changes.md; } >release-body.md
+
       - uses: softprops/action-gh-release@v2
         with:
+          body_path: release-body.md
           files: |
             out/usdx-desktop-windows-x86_64.zip
             out/usdx-desktop-macos-aarch64.zip
@@ -460,5 +491,4 @@ jobs:
             dist/installers/*.deb
             dist/installers/*.dmg
             dist/installers/*.msi
-          generate_release_notes: true
           fail_on_unmatched_files: true
