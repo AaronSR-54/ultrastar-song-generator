@@ -24,7 +24,7 @@ export function EditorPreview() {
     <div>
       <AppShot
         src="/app/editor.png"
-        alt="Editor real de UltraStar Song Generator con la frase «Now I long for yesterday», las notas de la melodía, la sílaba activa y los controles de reproducción."
+        alt="Editor real de UltraStar Song Generator con la frase «love was such an easy game to play», las notas de la melodía, la sílaba activa y los controles de reproducción."
         label="App / Vista previa"
         caption="Captura real · The Beatles — Yesterday · 172 notas · 23 frases"
       />

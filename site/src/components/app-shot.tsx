@@ -33,8 +33,8 @@ export function AppShot({
         <Image
           src={src}
           alt={alt}
-          width={1040}
-          height={700}
+          width={2080}
+          height={1400}
           priority={priority}
           sizes={sizes}
           className={cn("block h-auto w-full", imageClassName)}

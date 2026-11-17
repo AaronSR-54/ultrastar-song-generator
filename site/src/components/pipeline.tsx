@@ -61,19 +61,25 @@ const stages: Stage[] = [
 
 const shots = [
   {
-    src: "/app/metadata.png",
+    number: "01",
+    src: "/app/step-data.png",
     label: "Revisa los datos",
-    alt: "Pantalla real de la app para revisar título, artista, idioma, año, género y creador antes de procesar.",
+    body: "Título, artista, idioma y año llegan del vídeo. Corrige lo que falte antes de procesar.",
+    alt: "Recorte real de la app en la pantalla de datos: título Yesterday, artista The Beatles, idioma automático y año 2009.",
   },
   {
-    src: "/app/lyrics.png",
+    number: "02",
+    src: "/app/step-lyrics.png",
     label: "Revisa la letra",
-    alt: "Pantalla real de la app con la letra encontrada para Yesterday, lista para corregir antes de colocar las notas.",
+    body: "Si la encontramos, la corriges antes de colocar las notas; si no, la sacamos del audio.",
+    alt: "Recorte real de la app con la letra encontrada de Yesterday y los botones para cancelar o usar esa letra.",
   },
   {
-    src: "/app/done.png",
+    number: "03",
+    src: "/app/step-done.png",
     label: "Canción lista",
-    alt: "Pantalla real de la app al terminar: la canción está lista y copiada a la carpeta de destino.",
+    body: "El .txt validado, el audio, la carátula y el vídeo quedan en la carpeta de UltraStar.",
+    alt: "Recorte real de la app al terminar: canción lista, ruta de destino y botones para abrir la carpeta o la vista previa.",
   },
 ];
 
@@ -141,21 +147,32 @@ className="absolute top-0 left-0 size-[9px] -translate-y-1/2 border border-borde
             Las mismas pantallas que verás al procesar una canción.
           </p>
         </div>
-        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+        <div className="mt-5 border-t border-border">
           {shots.map((shot) => (
-            <figure key={shot.src}>
+            <figure
+              key={shot.src}
+              className="grid gap-5 border-b border-border py-7 md:grid-cols-[minmax(0,640px)_minmax(0,1fr)] md:items-center md:gap-10"
+            >
               <div className="border border-border bg-surface p-1">
                 <Image
                   src={shot.src}
                   alt={shot.alt}
-                  width={1040}
-                  height={700}
-                  sizes="(min-width: 1024px) 350px, (min-width: 640px) 33vw, 100vw"
+                  width={1280}
+                  height={960}
+                  sizes="(min-width: 1024px) 640px, 100vw"
                   className="block h-auto w-full"
                 />
               </div>
-              <figcaption className="mt-2 font-mono text-[9px] tracking-[0.1em] text-text-3 uppercase">
-                {shot.label}
+              <figcaption className="flex min-w-0 flex-col gap-2 md:max-w-[34ch]">
+                <MonoLabel className="text-[10px] tracking-[0.16em]">
+                  {shot.number}
+                </MonoLabel>
+                <span className="text-title font-semibold tracking-[-0.015em]">
+                  {shot.label}
+                </span>
+                <p className="text-caption leading-[1.6] text-text-2">
+                  {shot.body}
+                </p>
               </figcaption>
             </figure>
           ))}
