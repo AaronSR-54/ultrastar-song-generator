@@ -1,0 +1,18 @@
+Package: ultrastar-song-generator
+Version: @@VERSION@@
+Architecture: @@ARCH@@
+Maintainer: Aaron Sanz Roca <a.sanzblog6b@gmail.com>
+Installed-Size: @@INSTALLED_SIZE@@
+Depends: @@DEPENDS@@
+Recommends: ffmpeg, yt-dlp, espeak-ng, nodejs
+Section: sound
+Priority: optional
+Homepage: https://github.com/AaronSR-54/ultrastar-song-generator
+Description: Generate UltraStar Deluxe songs from audio and video
+ Builds UltraStar Deluxe songs from a video or audio file: separates the
+ stems, transcribes the lyrics, aligns words and syllables, and estimates
+ pitch.
+ .
+ The desktop app detects yt-dlp, ffmpeg, espeak-ng and Node/Deno at startup
+ and warns about any that are missing. None of them is bundled, because the
+ app still works without them.
