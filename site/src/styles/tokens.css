@@ -1,0 +1,94 @@
+/*
+ * Tokens del sistema de diseño de la app de escritorio.
+ * Fuente de verdad: crates/desktop/src/theme/palette.rs y scale.rs.
+ * No introducir colores, radios ni fuentes que no existan en la app.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0a0a0c;
+  --surface: #15161b;
+  --surface-2: #1b1c22;
+  --surface-3: #23242b;
+  --surface-4: #2c2d35;
+  --field: #0d0d11;
+  --border: #2a2c36;
+  --border-hover: #3c3e48;
+  --text: #f4f4f7;
+  --text-2: #a0a2ad;
+  --text-3: #82848f;
+  --accent: #4f8dff;
+  --accent-hover: #6b9fff;
+  --accent-pressed: #3e77e6;
+  --accent-text: #9dc0ff;
+  --wave: #6ea8ff;
+  --success: #3dd68c;
+  --warning: #f2c14e;
+  --danger: #ff5f5f;
+  --orange: #ffb25e;
+  --track: #24252c;
+  --on-accent: #080d18;
+  --grid-major: #242630;
+  --grid-minor: #17181e;
+  --grid-faint: #111217;
+  --close-red: #e81123;
+
+  --radius: 0px;
+
+  --app-font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "DejaVu Sans", sans-serif;
+  --app-font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo,
+    Consolas, "DejaVu Sans Mono", monospace;
+
+  --app-shadow: 0 8px 24px rgb(0 0 0 / 0.43);
+  --app-shadow-modal: 0 20px 52px rgb(0 0 0 / 0.67);
+
+  --dot: rgb(138 140 151 / 0.1);
+  --dot-size: 32px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+  --color-field: var(--field);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-pressed: var(--accent-pressed);
+  --color-accent-text: var(--accent-text);
+  --color-wave: var(--wave);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-orange: var(--orange);
+  --color-track: var(--track);
+  --color-on-accent: var(--on-accent);
+  --color-grid-major: var(--grid-major);
+  --color-grid-minor: var(--grid-minor);
+  --color-grid-faint: var(--grid-faint);
+  --color-close-red: var(--close-red);
+
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
+
+  --text-micro: 0.6875rem;
+  --text-caption: 0.78125rem;
+  --text-body: 0.875rem;
+  --text-title: 1rem;
+  --text-display: 1.25rem;
+  --text-hero: 1.5rem;
+  --text-display-lg: 2.5rem;
+  --text-display-xl: 4rem;
+  --text-hero-lg: clamp(2.5rem, 7.2vw, 5.5rem);
+
+  --shadow-card: var(--app-shadow);
+  --shadow-modal: var(--app-shadow-modal);
+}
